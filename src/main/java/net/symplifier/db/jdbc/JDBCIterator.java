@@ -9,14 +9,15 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 
 /**
  * Created by ranjan on 7/3/15.
  */
 public class JDBCIterator<T extends Row> implements RowIterator<T> {
-  private final ResultSet rs;
 
+  private final ResultSet rs;
   private final Model<T> primaryModel;
 
   public JDBCIterator(Model<T> primaryModel, ResultSet rs) {
@@ -25,11 +26,12 @@ public class JDBCIterator<T extends Row> implements RowIterator<T> {
   }
 
   @Override
-  public boolean hasNext() throws DatabaseException {
+  public boolean hasNext() {
     try {
       return rs.next();
     } catch(SQLException e) {
-      throw new DatabaseException("Error while iterating through resultset", e);
+      return false;
+      //throw new DatabaseException("Error while iterating through resultset", e);
     }
   }
 
@@ -43,7 +45,7 @@ public class JDBCIterator<T extends Row> implements RowIterator<T> {
   }
 
   @Override
-  public T next() throws DatabaseException {
+  public T next() {
     T row = primaryModel.createRow();
     try {
       ResultSetMetaData metaData = rs.getMetaData();
@@ -119,9 +121,15 @@ public class JDBCIterator<T extends Row> implements RowIterator<T> {
         }
       }
     } catch (SQLException e) {
-      throw new DatabaseException("Error while updating model from result set", e);
+      return null;
+      //throw new DatabaseException("Error while updating model from result set", e);
     }
 
     return row;
+  }
+
+  @Override
+  public Iterator<T> iterator() {
+    return this;
   }
 }
