@@ -127,11 +127,17 @@ public class JDBCDriver implements Driver {
       }
     }
 
-    if (row.getId() == null) {
-      if (model.getModel().hasParent()) {
-        save(schema, (JDBCModelInfo)model.getModel().getParent().getMoreInfo(), row);
-      }
+    // If the model consists of parent model, checking on the ID will consider
+    // the child model as already existent, so saving the isNew state on a
+    // variable in the very beginning itself
+    boolean isNew = row.getId() == null;
 
+    // Save the parent model first
+    if (model.getModel().hasParent()) {
+      save(schema, (JDBCModelInfo)model.getModel().getParent().getMoreInfo(), row);
+    }
+
+    if (isNew) {
       // Do an insert
       PreparedStatement stmt = model.getInsertStatement();
       int index = prepareStatement(model, stmt, row);
