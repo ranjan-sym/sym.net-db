@@ -37,12 +37,14 @@ public class Filter<T extends Row> implements FilterEntity {
   }
 
   public Filter<T> and(Condition condition) {
+    owner.reset();
     entities.add(AND);
     entities.add(condition);
     return this;
   }
 
   public Filter<T> or(Condition condition) {
+    owner.reset();
     entities.add(OR);
     entities.add(condition);
     return this;
@@ -50,6 +52,7 @@ public class Filter<T extends Row> implements FilterEntity {
 
 
   public Filter<T> andBlock(Condition condition) {
+    owner.reset();
     entities.add(AND);
     Filter<T> block = new Filter<>(this.owner, primaryModel, this, condition);
     entities.add(block);
@@ -58,6 +61,7 @@ public class Filter<T extends Row> implements FilterEntity {
   }
 
   public Filter<T> orBlock(Condition condition) {
+    owner.reset();
     entities.add(OR);
     Filter<T> block = new Filter<>(this.owner, primaryModel, this, condition);
     entities.add(block);
@@ -65,10 +69,12 @@ public class Filter<T extends Row> implements FilterEntity {
   }
 
   public Filter<T> endBlock() {
+    owner.reset();
     return parent;
   }
 
   public Filter<T> not() {
+    owner.reset();
     entities.addFirst(NOT);
     return parent;
   }

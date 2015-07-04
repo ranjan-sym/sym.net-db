@@ -15,6 +15,8 @@ public abstract class Query<T extends Row> {
     this.primaryModel = primaryModel;
   }
 
+  public abstract void reset();
+
   public Model<T> getModel() {
     return primaryModel;
   }
@@ -24,6 +26,7 @@ public abstract class Query<T extends Row> {
   }
 
   public Filter<T> filter(Condition condition) {
+    reset();
     filter = new Filter<>(this, primaryModel, null, condition);
     return filter;
   }

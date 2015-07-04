@@ -42,7 +42,8 @@ public class JDBCQuery<T extends Row> extends Query<T> {
     }
   }
 
-  private void reset() {
+  @Override
+  public void reset() {
     this.preparedSql = null;
     this.preparedStatement = null;
     this.countPreparedStatement = null;
@@ -108,12 +109,6 @@ public class JDBCQuery<T extends Row> extends Query<T> {
       model = model.getParent();
     } while (model != null);
     throw new ModelException("The column " + column.getName() + " does not belong to model " + primaryModel.getName() + " or any of its children");
-  }
-
-  @Override
-  public Filter<T> filter(Condition condition) {
-    reset();
-    return super.filter(condition);
   }
 
   private PreparedStatement getPreparedStatement(boolean count) throws DatabaseException {
