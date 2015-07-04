@@ -8,10 +8,10 @@ import net.symplifier.tests.db.Event;
  */
 public class EventModel extends Model<Event> {
 
-  public static final Column code = new Column("code", String.class);
-  public static final Column type = new Column("type", String.class);
-  public static final Column description = new Column("description", String.class);
-  public static final Column triggerOn = new Column("trigger_on", Boolean.class);
+  public static final Column<String> code = new Column<>("code", String.class);
+  public static final Column<String> type = new Column<>("type", String.class);
+  public static final Column<String> description = new Column<>("description", String.class);
+  public static final Column<Boolean> triggerOn = new Column<>("trigger_on", Boolean.class);
 
   public EventModel(Schema schema, String name) {
     super(schema, name);

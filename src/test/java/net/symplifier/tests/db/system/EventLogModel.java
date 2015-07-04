@@ -15,11 +15,11 @@ import java.util.Date;
  */
 public class EventLogModel extends Model<EventLog> {
 
-  public static final Column timestamp = new Column("timestamp", Date.class);
+  public static final Column<Date> timestamp = new Column<>("timestamp", Date.class);
 
-  public static final Column event = new Column("event_id", Event.class);
+  public static final Column<Event> event = new Column<>("event_id", Event.class);
 
-  public static final Column location = new Column("location_id", Location.class);
+  public static final Column<Location> location = new Column<>("location_id", Location.class);
 
 
   public EventLogModel(Schema schema, String name) {
