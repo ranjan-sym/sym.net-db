@@ -302,6 +302,11 @@ public abstract class Model<T extends Row> {
   }
 
   public T find(long id) throws DatabaseException {
+    // If the item is available in the cache, we will serve it from there
+    if(cache.containsKey(id)) {
+      return cache.get(id);
+    }
+
     primaryKeyCondition.setValue(id);
     RowIterator<T> iterator = selectByPrimaryKeyQuery.getRows();
     if (iterator.hasNext()) {
