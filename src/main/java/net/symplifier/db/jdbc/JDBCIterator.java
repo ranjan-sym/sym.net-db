@@ -55,7 +55,7 @@ public class JDBCIterator<T extends Row> implements RowIterator<T> {
         // otherwise it hit on a cache, in which case, we will not load this
         // particular record from the RecordSet as it will pose a danger of
         // reverting back the changes being made to the row for editing purposes
-        if (row.getId() == id) {
+        if (row.getId() != null && row.getId() == id) {
           return row;
         }
       } else {
