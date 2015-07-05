@@ -13,7 +13,7 @@ import java.util.*;
  * Created by ranjan on 7/3/15.
  */
 public abstract class Model<T extends Row> {
-  public static final Column<Long> KEY = new Column<Long>("id", Long.TYPE);
+  public static final Column<Long> KEY = new Column<>("id", Long.TYPE);
 
   public static final Logger LOGGER = LogManager.getLogger("DBModel");
 
@@ -169,10 +169,10 @@ public abstract class Model<T extends Row> {
           throw new ModelException("The Row hierarchy and the Model hierarchy do not match. "
                   + modelClass + " has a parent " + parent.modelClass
                   + ", but the associated row " + associatedRow
-                  + " doesn not extend from " + parent.associatedRow);
+                  + " does not extend from " + parent.associatedRow);
       }
     } else {
-      throw new ModelException("Themodel " + modelClass + " must extend from Model parameterized with the corresponding Row class");
+      throw new ModelException("The model " + modelClass + " must extend from Model parameterized with the corresponding Row class");
     }
 
     for(Field field:modelClass.getDeclaredFields()) {
