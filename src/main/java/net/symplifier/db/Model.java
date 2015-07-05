@@ -265,6 +265,15 @@ public abstract class Model<T extends Row> {
     return basicQuery.getRows();
   }
 
+  public <S> T findOne(Column<S> column, S value) throws DatabaseException {
+    RowIterator<T> iterator = basicQuery.copy().filter(column.is(value)).query().getRows();
+    if (iterator.hasNext()) {
+      return iterator.next();
+    } else {
+      return null;
+    }
+  }
+
   public T find(long id) throws DatabaseException {
     primaryKeyCondition.setValue(id);
     RowIterator<T> iterator = selectByPrimaryKeyQuery.getRows();
