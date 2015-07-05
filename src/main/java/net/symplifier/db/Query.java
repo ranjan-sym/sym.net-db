@@ -22,6 +22,9 @@ public abstract class Query<T extends Row> {
   }
 
   public Filter<T> getFilter() {
+    // Returning a null from this function can be a problem.
+    // So just adding a TRUE entity and returning a new
+    // filter object
     if (filter == null) {
       filter = new Filter<>(this, primaryModel, null, Filter.TRUE);
     }
