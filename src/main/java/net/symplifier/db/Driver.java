@@ -1,9 +1,5 @@
 package net.symplifier.db;
 
-import javax.xml.crypto.Data;
-import java.util.Iterator;
-import java.util.List;
-
 /**
  * Created by ranjan on 7/3/15.
  */
@@ -17,7 +13,7 @@ public interface Driver {
    * @param model The Model for which more information needs to be pre-prepared
    * @return The new ModelInfo
    */
-  ModelInfo generateModelInfo(Model model);
+  <T extends Row> ModelInfo<T> generateModelInfo(Model<T> model);
 
   /**
    * Begin a database transaction
@@ -62,15 +58,15 @@ public interface Driver {
 
   <T extends Row> Query<T> createQuery(Model<T> primaryModel);
 
-  abstract class ModelInfo {
+  abstract class ModelInfo<T extends Row> {
 
-    private final Model model;
+    private final Model<T> model;
 
-    public ModelInfo(Model model) {
+    public ModelInfo(Model<T> model) {
       this.model = model;
     }
 
-    public Model<?> getModel() {
+    public Model<T> getModel() {
       return model;
     }
   }

@@ -9,7 +9,7 @@ public abstract class Schema {
   private final Driver driver;
 
   private final Map<String, Driver.ModelInfo> models = new LinkedHashMap<>();
-  private final Map<Class<? extends Row>, Driver.ModelInfo> rowAssociatedModels = new HashMap<>();
+  private final Map<Class<? extends Row>, Driver.ModelInfo<? extends Row>> rowAssociatedModels = new HashMap<>();
 
   public Schema(Driver driver) {
     this.driver = driver;
@@ -27,6 +27,10 @@ public abstract class Schema {
     driver.rollback();
   }
 
+  public <T extends Row> T createRow(Class<T> clazz) {
+    Driver.ModelInfo<T> model = getModel(clazz);
+    return model.getModel().createRow();
+  }
 
   public void createAll() throws DatabaseException {
     for(Driver.ModelInfo model:models.values()) {
@@ -42,17 +46,17 @@ public abstract class Schema {
     return driver.createQuery(primaryModel);
   }
 
-  public Driver.ModelInfo getModel(Class<? extends Row> rowClass) {
-    return rowAssociatedModels.get(rowClass);
+  public <T extends Row> Driver.ModelInfo<T> getModel(Class<T> rowClass) {
+    return (Driver.ModelInfo<T>)rowAssociatedModels.get(rowClass);
   }
 
   public boolean hasModel(String name) {
     return models.containsKey(name);
   }
 
-  public Driver.ModelInfo registerModel(String name, Model<?> model) {
+  public <T extends Row> Driver.ModelInfo<T> registerModel(String name, Model<T> model) {
     assert(!models.containsKey(name));
-    Driver.ModelInfo info = driver.generateModelInfo(model);
+    Driver.ModelInfo<T> info = driver.generateModelInfo(model);
     models.put(name, info);
     rowAssociatedModels.put(model.getAssociatedRow(), info);
 

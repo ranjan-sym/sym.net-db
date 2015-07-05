@@ -3,6 +3,7 @@ package net.symplifier.db.jdbc;
 import net.symplifier.db.Column;
 import net.symplifier.db.Driver;
 import net.symplifier.db.Model;
+import net.symplifier.db.Row;
 
 import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
@@ -14,7 +15,7 @@ import java.util.Set;
 /**
  * Created by ranjan on 7/3/15.
  */
-public class JDBCModelInfo extends Driver.ModelInfo {
+public class JDBCModelInfo<T extends Row> extends Driver.ModelInfo<T> {
 
   private final String insertSQL;
   private final String updateSQL;
@@ -23,9 +24,9 @@ public class JDBCModelInfo extends Driver.ModelInfo {
   private PreparedStatement updateStatement;
 
   private final JDBCDriver driver;
-  private final Model<?> model;
+  private final Model<T> model;
 
-  public JDBCModelInfo(JDBCDriver driver, Model<?> model) {
+  public JDBCModelInfo(JDBCDriver driver, Model<T> model) {
     super(model);
 
     this.driver = driver;

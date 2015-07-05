@@ -3,7 +3,6 @@ package net.symplifier.db.jdbc;
 import net.symplifier.db.*;
 import net.symplifier.db.Driver;
 
-import javax.xml.crypto.Data;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.sql.*;
@@ -50,12 +49,12 @@ public class JDBCDriver implements Driver {
 
   @Override
   public <T extends Row> Query<T> createQuery(Model<T> model) {
-    return new JDBCQuery(this, model);
+    return new JDBCQuery<>(this, model);
   }
 
   @Override
-  public ModelInfo generateModelInfo(Model model) {
-    return new JDBCModelInfo(this, model);
+  public <T extends Row> ModelInfo<T> generateModelInfo(Model<T> model) {
+    return new JDBCModelInfo<>(this, model);
   }
 
   @Override
@@ -114,9 +113,9 @@ public class JDBCDriver implements Driver {
 
   }
 
-  protected void save(Schema schema, JDBCModelInfo model, Row row) throws SQLException, IllegalAccessException, DatabaseException {
+  protected <T extends Row> void save(Schema schema, JDBCModelInfo<T> model, Row row) throws SQLException, IllegalAccessException, DatabaseException {
 
-    Model m = model.getModel();
+    Model<T> m = model.getModel();
 
     // Check for reference types, if there are any records, with reference to
     // record on another table, need to save that first
@@ -164,7 +163,7 @@ public class JDBCDriver implements Driver {
     }
   }
 
-  protected int  prepareStatement(JDBCModelInfo model, PreparedStatement statement, Row row) throws SQLException, IllegalAccessException {
+  protected <T extends Row> int  prepareStatement(JDBCModelInfo<T> model, PreparedStatement statement, Row row) throws SQLException, IllegalAccessException {
     statement.clearParameters();
 
     int index = 1;

@@ -1,9 +1,7 @@
 package net.symplifier.db;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 
 /**
  * Created by ranjan on 7/3/15.

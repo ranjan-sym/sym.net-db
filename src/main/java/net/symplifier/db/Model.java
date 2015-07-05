@@ -70,7 +70,9 @@ public abstract class Model<T extends Row> {
 
   public T createRow() throws ModelException {
     try {
-      return associatedRow.newInstance();
+      T row = associatedRow.newInstance();
+      row.setSchema(this.schema);
+      return row;
     } catch(IllegalAccessException e) {
       throw new ModelException("Error while trying to create row instance for model " + modelClass + ". Default constructor not accessible.", e);
     } catch (InstantiationException e) {
@@ -156,7 +158,6 @@ public abstract class Model<T extends Row> {
     Type type = modelClass.getGenericSuperclass();
     if (type instanceof ParameterizedType) {
       Class rowType = (Class)((ParameterizedType) type).getActualTypeArguments()[0];
-
       if (rowType == Row.class || !Row.class.isAssignableFrom(rowType)) {
         throw new ModelException("The Model definition of " + modelClass + " must be parameterized from a Row class of corresponding Model");
       } else {
@@ -170,6 +171,8 @@ public abstract class Model<T extends Row> {
                   + ", but the associated row " + associatedRow
                   + " doesn not extend from " + parent.associatedRow);
       }
+    } else {
+      throw new ModelException("Themodel " + modelClass + " must extend from Model parameterized with the corresponding Row class");
     }
 
     for(Field field:modelClass.getDeclaredFields()) {
