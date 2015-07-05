@@ -290,6 +290,17 @@ public abstract class Model<T extends Row> {
     }
   }
 
+  public T find(String id) throws DatabaseException {
+    if (id == null) {
+      return null;
+    }
+    try {
+      return find(Long.parseLong(id));
+    } catch(NumberFormatException e) {
+      return null;
+    }
+  }
+
   public T find(long id) throws DatabaseException {
     primaryKeyCondition.setValue(id);
     RowIterator<T> iterator = selectByPrimaryKeyQuery.getRows();
