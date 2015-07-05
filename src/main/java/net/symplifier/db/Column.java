@@ -37,32 +37,32 @@ public final class Column <T> {
     return required;
   }
 
-  public Condition is(T value) {
-    return new Condition<T>(this, Condition.IS, value);
+  public Condition<T> is(T value) {
+    return new Condition<>(this, Condition.IS, value);
   }
 
-  public Condition greaterThan(T value) {
-    return new Condition<T>(this, Condition.GREATER_THAN, value);
+  public Condition<T> greaterThan(T value) {
+    return new Condition<>(this, Condition.GREATER_THAN, value);
   }
 
-  public Condition lessThan(T value) {
-    return new Condition<T>(this, Condition.LESS_THAN, value);
+  public Condition<T> lessThan(T value) {
+    return new Condition<>(this, Condition.LESS_THAN, value);
   }
 
-  public Condition greaterThanOrEquals(T value) {
-    return new Condition<T>(this, Condition.GREATER_THAN_OR_EQUALS, value);
+  public Condition<T> greaterThanOrEquals(T value) {
+    return new Condition<>(this, Condition.GREATER_THAN_OR_EQUALS, value);
   }
 
-  public Condition lessThanOrEquals(T value) {
-    return new Condition<T>(this, Condition.LESS_THAN_OR_EQUALS, value);
+  public Condition<T> lessThanOrEquals(T value) {
+    return new Condition<>(this, Condition.LESS_THAN_OR_EQUALS, value);
   }
 
-  public Condition isNot(T value) {
-    return new Condition<T>(this, Condition.IS_NOT, value);
+  public Condition<T> isNot(T value) {
+    return new Condition<>(this, Condition.IS_NOT, value);
   }
 
-  public Condition like(T value) {
-    return new Condition<T>(this, Condition.LIKE, value);
+  public Condition<T> like(T value) {
+    return new Condition<>(this, Condition.LIKE, value);
   }
 
 
