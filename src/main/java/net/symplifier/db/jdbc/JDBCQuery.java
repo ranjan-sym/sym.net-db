@@ -143,7 +143,12 @@ public class JDBCQuery<T extends Row> extends Query<T> {
       stmt.clearParameters();
 
       for (int i = 1; i <= preparedStatementValues.size(); ++i) {
-        stmt.setObject(i, preparedStatementValues.get(i-1).getValue());
+        Object value = preparedStatementValues.get(i-1).getValue();
+        if (value instanceof Row) {
+          stmt.setLong(i, ((Row) value).getId());
+        } else {
+          stmt.setObject(i, preparedStatementValues.get(i - 1).getValue());
+        }
       }
     } catch(SQLException e) {
       throw new DatabaseException("Error while generating query SQL", e);
