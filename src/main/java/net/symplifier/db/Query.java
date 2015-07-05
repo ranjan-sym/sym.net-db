@@ -22,10 +22,13 @@ public abstract class Query<T extends Row> {
   }
 
   public Filter<T> getFilter() {
+    if (filter == null) {
+      filter = new Filter<>(this, primaryModel, null, Filter.TRUE);
+    }
     return filter;
   }
 
-  public Filter<T> filter(Condition condition) {
+  public Filter<T> filter(Condition<?> condition) {
     reset();
     filter = new Filter<>(this, primaryModel, null, condition);
     return filter;

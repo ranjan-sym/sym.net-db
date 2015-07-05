@@ -7,6 +7,7 @@ import java.util.LinkedList;
  * Created by ranjan on 7/3/15.
  */
 public class Filter<T extends Row> implements FilterEntity {
+  public static final FilterEntity TRUE = new FilterEntity() {};
 
   public static final FilterEntity AND = new FilterEntity() {};
   public static final FilterEntity OR = new FilterEntity() {};
@@ -22,7 +23,7 @@ public class Filter<T extends Row> implements FilterEntity {
     return entities.iterator();
   }
 
-  public Filter(Query<T> owner, Model<T> primaryModel, Filter<T> parent, Condition condition) {
+  public Filter(Query<T> owner, Model<T> primaryModel, Filter<T> parent, FilterEntity condition) {
     this.owner = owner;
     this.primaryModel = primaryModel;
     this.parent = parent;

@@ -188,7 +188,9 @@ public class JDBCQuery<T extends Row> extends Query<T> {
     Iterator<FilterEntity> entities = filter.getEntities();
     while(entities.hasNext()) {
       FilterEntity entity = entities.next();
-      if (entity == Filter.AND) {
+      if (entity == Filter.TRUE) {
+        sql += " 1";
+      } else if (entity == Filter.AND) {
         sql += " AND ";
       } else if (entity == Filter.OR) {
         sql += " OR ";
