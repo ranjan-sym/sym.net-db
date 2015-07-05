@@ -21,7 +21,7 @@ public class Row {
 
   public void save() throws DatabaseException {
     if (schema == null) {
-      throw new DatabaseException("The '" + getClass() + "' instance doesn't " +
+      throw new ModelException("The '" + getClass() + "' instance doesn't " +
               "seem to be generated with a Schema. Make sure the instance is " +
               "generated through the query in the Schema or create a new " +
               "instance using Schema#createRow method");
