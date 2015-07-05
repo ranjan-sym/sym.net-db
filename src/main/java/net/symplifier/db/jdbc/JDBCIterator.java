@@ -46,7 +46,26 @@ public class JDBCIterator<T extends Row> implements RowIterator<T> {
 
   @Override
   public T next() {
-    T row = primaryModel.createRow();
+    T row;
+    try {
+      long id = rs.getLong("id");
+      if (!rs.wasNull()) {
+        row = primaryModel.createRow(id);
+        // The id of the row is not set if the createRow missed on a cache,
+        // otherwise it hit on a cache, in which case, we will not load this
+        // particular record from the RecordSet as it will pose a danger of
+        // reverting back the changes being made to the row for editing purposes
+        if (row.getId() == id) {
+          return row;
+        }
+      } else {
+        row = primaryModel.createRow();
+      }
+    } catch(SQLException e) {
+      System.out.println("Unexpected error. We expect id in all the quries.");
+      row = primaryModel.createRow();
+    }
+
     try {
       ResultSetMetaData metaData = rs.getMetaData();
       for (int i = 1; i <= metaData.getColumnCount(); ++i) {

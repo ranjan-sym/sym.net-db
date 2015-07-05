@@ -32,6 +32,9 @@ public abstract class Model<T extends Row> {
   private final Map<String, Field> fields = new LinkedHashMap<>();
   private final Map<String, Field> references = new LinkedHashMap<>();
 
+  // A cache of all the records that has been retrieved for this model so far
+  // TODO Need to implement expiry and maximum cache size
+  private final Map<Long, T> cache = new HashMap<>();
 
   private final Query<T> basicQuery;
   private final Query<T> selectByPrimaryKeyQuery;
@@ -66,6 +69,19 @@ public abstract class Model<T extends Row> {
 
   public Field isReference(Column column) {
     return references.get(column.getName());
+  }
+
+  /**
+   * Used for caching mechanism
+   */
+  public T createRow(long id) {
+    if (cache.containsKey(id)) {
+      return cache.get(id);
+    } else {
+      T row = createRow();
+      cache.put(id, row);
+      return row;
+    }
   }
 
   public T createRow() throws ModelException {
