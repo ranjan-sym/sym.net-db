@@ -19,6 +19,7 @@ public class JDBCQuery<T extends Row> extends Query<T> {
   private String limitSQL = null;
 
   private String preparedSql = null;
+  private String preparedSqlCount = null;
   private PreparedStatement preparedStatement = null;
   private PreparedStatement countPreparedStatement = null;
   private List<Condition> preparedStatementValues = new ArrayList<>();
@@ -45,6 +46,7 @@ public class JDBCQuery<T extends Row> extends Query<T> {
   @Override
   public void reset() {
     this.preparedSql = null;
+    this.preparedSqlCount = null;
     this.preparedStatement = null;
     this.countPreparedStatement = null;
   }
@@ -113,17 +115,24 @@ public class JDBCQuery<T extends Row> extends Query<T> {
 
   private PreparedStatement getPreparedStatement(boolean count) throws DatabaseException {
 
-    if (preparedSql == null) {
-      preparedSql = generateSQL();
+    PreparedStatement stmt;
+    if (count) {
+      if (preparedSqlCount == null) {
+        preparedSqlCount = generateSQL(true);
+      }
+      stmt = countPreparedStatement;
+    } else {
+      if (preparedSql == null) {
+        preparedSql = generateSQL(false);
+      }
+      stmt = preparedStatement;
     }
-
-    PreparedStatement stmt = count ? countPreparedStatement : preparedStatement;
 
     if (stmt == null) {
       JDBCDriver driver = (JDBCDriver)super.driver;
       String sql;
       if (count) {
-        sql = "SELECT COUNT(*) FROM " + preparedSql;
+        sql = "SELECT COUNT(*) FROM " + preparedSqlCount;
       } else {
         sql = "SELECT * FROM " + preparedSql;
       }
@@ -158,6 +167,7 @@ public class JDBCQuery<T extends Row> extends Query<T> {
   }
 
   public int getSize() throws DatabaseException {
+    // Let's avoid the limit clause while do the counting
     PreparedStatement stmt = getPreparedStatement(true);
 
     try {
@@ -251,7 +261,7 @@ public class JDBCQuery<T extends Row> extends Query<T> {
     return sql;
   }
 
-  private String generateSQL() {
+  private String generateSQL(boolean count) {
     preparedStatementValues.clear();
 
     String sql = extractionSQL;
@@ -260,12 +270,16 @@ public class JDBCQuery<T extends Row> extends Query<T> {
       sql += " WHERE " + filterToSQL(filter);
     }
 
-    if (orderSQL != null) {
-      sql += " ORDER BY " + orderSQL;
-    }
+    // While doing the counting SQL, the ORDER BY clause and limit clause
+    // do not have any affect, so ignore them
+    if (!count) {
+      if (orderSQL != null) {
+        sql += " ORDER BY " + orderSQL;
+      }
 
-    if (limitSQL != null) {
-      sql += " LIMIT " + limitSQL;
+      if (limitSQL != null) {
+        sql += " LIMIT " + limitSQL;
+      }
     }
 
     return sql;

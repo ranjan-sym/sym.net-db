@@ -31,7 +31,7 @@ public abstract class Query<T extends Row> {
     return filter;
   }
 
-  public Filter<T> filter(Condition<?> condition) {
+  public Filter<T> filter(FilterEntity condition) {
     reset();
     filter = new Filter<>(this, primaryModel, null, condition);
     return filter;
