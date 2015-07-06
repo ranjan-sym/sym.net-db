@@ -144,6 +144,8 @@ public class JDBCIterator<T extends Row> implements RowIterator<T> {
       //throw new DatabaseException("Error while updating model from result set", e);
     }
 
+    row.onLoaded();
+
     return row;
   }
 

@@ -7,6 +7,10 @@ public class Row {
   private Schema schema;
   private Long id;
 
+  protected Schema getSchema() {
+    return schema;
+  }
+
   void setSchema(Schema schema) {
     this.schema = schema;
   }
@@ -27,6 +31,23 @@ public class Row {
               "instance using Schema#createRow method");
     } else {
       schema.save(this);
+      onSaved();
     }
+  }
+
+  /**
+   * Callback mechanism for the implementing class to perform certain action
+   * when the row is loaded from the database system
+   */
+  public void onLoaded() {
+
+  }
+
+  /**
+   * Callback mechanism for the implementing class to perform certain action
+   * when the row is aved to the database system
+   */
+  public void onSaved() {
+
   }
 }
