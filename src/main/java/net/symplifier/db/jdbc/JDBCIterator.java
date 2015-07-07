@@ -80,6 +80,7 @@ public class JDBCIterator<T extends Row> implements RowIterator<T> {
             Column column = model.getColumn(metaData.getColumnName(i));
             // If the column is not found, try it out on the parent model
             if (column == null) {
+              model = model.getParent();
               continue;
             }
 
@@ -132,7 +133,7 @@ public class JDBCIterator<T extends Row> implements RowIterator<T> {
 
             break;
           }
-          model = model.getParent();
+
         } while (model != null);
 
         if (model == null) {
