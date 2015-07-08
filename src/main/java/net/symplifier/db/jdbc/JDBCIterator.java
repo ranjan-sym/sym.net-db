@@ -132,6 +132,8 @@ public class JDBCIterator<T extends Row> implements RowIterator<T> {
             }
 
             break;
+          } else {
+            model = model.getParent();
           }
 
         } while (model != null);
