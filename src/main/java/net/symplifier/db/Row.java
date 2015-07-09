@@ -15,11 +15,11 @@ public class Row {
     this.schema = schema;
   }
 
-  public final Long getId() {
+  public Long getId() {
     return id;
   }
 
-  void setId(long id) {
+  public void setId(Long id) {
     this.id = id;
   }
 
