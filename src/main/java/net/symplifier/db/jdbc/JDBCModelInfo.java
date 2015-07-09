@@ -57,19 +57,19 @@ public class JDBCModelInfo<T extends Row> extends Driver.ModelInfo<T> {
           updateSql += ",";
         }
 
-        insertSql += columnName;
+        insertSql += "`" + columnName + "`";
         insertSqlArgs += "?";
-        updateSql += columnName + "=?";
+        updateSql += "`" + columnName + "`=?";
       }
     }
 
     if (model.hasParent()) {
-      insertSql += "," + model.getPrimaryKeyFieldName();
+      insertSql += ",`" + model.getPrimaryKeyFieldName() + "`";
       insertSqlArgs += ",?";
     }
 
     this.insertSQL = insertSql + ") VALUES (" + insertSqlArgs + ")";
-    this.updateSQL = updateSql + " WHERE " + model.getPrimaryKeyFieldName() + "=?";
+    this.updateSQL = updateSql + " WHERE `" + model.getPrimaryKeyFieldName() + "`=?";
   }
 
   PreparedStatement getInsertStatement() throws SQLException {
