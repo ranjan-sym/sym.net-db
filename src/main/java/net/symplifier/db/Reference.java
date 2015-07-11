@@ -19,10 +19,10 @@ public class Reference<T extends Row> {
     }
   }
 
-  void setId(Model<T> model, long id) {
+  void setId(Model<T> model, Long id) {
     this.id = id;
     this.model = model;
-    if (ref != null && ref.getId() != id) {
+    if (ref != null && (id==null || !id.equals(ref.getId()))) {
       ref = null;
     }
   }
