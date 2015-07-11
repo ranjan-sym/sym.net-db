@@ -126,7 +126,11 @@ public class JDBCIterator<T extends Row> implements RowIterator<T> {
                 model.updateField(row, f, column, value);
               }
             } else if ((f = model.isReference(column)) != null) {
-              model.updateReference(row, f, column, rs.getLong(i));
+              Long refId = rs.getLong(i);
+              if (rs.wasNull()) {
+                refId = null;
+              }
+              model.updateReference(row, f, column, null);
             } else {
               //TODO: A Warning message, no column found with the given name in the model
             }
