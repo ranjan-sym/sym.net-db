@@ -15,6 +15,14 @@ public abstract class Schema {
     this.driver = driver;
   }
 
+  public Model<?> findModel(String name) {
+    Driver.ModelInfo info = models.get(name);
+    if (info != null) {
+      return info.getModel();
+    }
+    return null;
+  }
+
   public void begin() throws DatabaseException {
     driver.begin();
   }

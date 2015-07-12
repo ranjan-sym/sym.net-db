@@ -60,6 +60,38 @@ public abstract class Model<T extends Row> {
     return columns.get(name);
   }
 
+
+  public Model findModel(String fullName) {
+    int dot = fullName.indexOf('.');
+    if (dot == -1) {
+      return this;
+    } else {
+      String parent = fullName.substring(0, dot);
+      String rem = fullName.substring(dot+1);
+      if (this.parent != null && this.parent.name.equals(parent)) {
+        return this.parent.findModel(rem);
+      } else {
+        return null;
+      }
+    }
+  }
+
+  public Column findColumn(String fullName) {
+    int dot = fullName.indexOf('.');
+    if (dot > -1) {
+      String parent = fullName.substring(0, dot);
+      String col = fullName.substring(dot+1);
+
+      if(this.parent != null && this.parent.name.equals(parent)) {
+        return this.parent.findColumn(col);
+      } else {
+        return null;
+      }
+    } else {
+      return getColumn(fullName);
+    }
+  }
+
   public boolean isPrimaryKey(Column column) {
     return column == primaryKeyColumn;
   }
@@ -79,8 +111,16 @@ public abstract class Model<T extends Row> {
       return cache.get(id);
     } else {
       T row = createRow();
-      cache.put(id, row);
+      updateCache(id, row);
       return row;
+    }
+  }
+
+  public void updateCache(long id, Object row) {
+    cache.put(id, (T)row);
+    // Also update all the parent model as well
+    if (this.parent != null) {
+      this.parent.updateCache(id, row);
     }
   }
 
@@ -323,6 +363,7 @@ public abstract class Model<T extends Row> {
   public void updatePrimaryKey(Row row, Long value) {
     row.setId(value);
   }
+
 
   public void updateField(Row row, Field field, Column col, Object value) {
     try {
