@@ -113,7 +113,7 @@ public class JDBCDriver implements Driver {
 
   }
 
-  protected <T extends Row> void save(Schema schema, JDBCModelInfo<T> model, Row row) throws SQLException, IllegalAccessException, DatabaseException {
+  protected <T extends Row> void save(Schema schema, JDBCModelInfo<T> model, T row) throws SQLException, IllegalAccessException, DatabaseException {
 
     Model<T> m = model.getModel();
 
@@ -151,6 +151,9 @@ public class JDBCDriver implements Driver {
           ResultSet rs = stmt.getGeneratedKeys();
           if (rs.next()) {
             m.updatePrimaryKey(row, rs.getLong(1));
+
+            // Let's update the cache as well
+            model.getModel().updateCache(row.getId(), row);
           }
         }
       }
