@@ -15,6 +15,8 @@ public abstract class Query<T extends Row> {
     this.primaryModel = primaryModel;
   }
 
+  public abstract void close();
+
   public abstract void reset();
 
   public Model<T> getModel() {

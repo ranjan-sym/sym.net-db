@@ -322,12 +322,15 @@ public abstract class Model<T extends Row> {
   }
 
   public <S> T findOne(Column<S> column, S value) throws DatabaseException {
-    RowIterator<T> iterator = basicQuery.copy().filter(column.is(value)).query().getRows();
+    Query q = basicQuery.copy().filter(column.is(value)).query();
+    RowIterator<T> iterator = q.getRows();
+    T res = null;
     if (iterator.hasNext()) {
-      return iterator.next();
-    } else {
-      return null;
+      res = iterator.next();
     }
+    iterator.close();
+    q.close();
+    return res;
   }
 
   public T find(String id) throws DatabaseException {
@@ -349,11 +352,12 @@ public abstract class Model<T extends Row> {
 
     primaryKeyCondition.setValue(id);
     RowIterator<T> iterator = selectByPrimaryKeyQuery.getRows();
+    T res = null;
     if (iterator.hasNext()) {
-      return iterator.next();
-    } else {
-      return null;
+      res = iterator.next();
     }
+    iterator.close();
+    return res;
   }
 
   public Query<T> query() {

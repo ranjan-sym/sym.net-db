@@ -45,10 +45,27 @@ public class JDBCQuery<T extends Row> extends Query<T> {
 
   @Override
   public void reset() {
+
+    close();
+
     this.preparedSql = null;
     this.preparedSqlCount = null;
     this.preparedStatement = null;
     this.countPreparedStatement = null;
+  }
+
+  public void close() {
+    try {
+      if (preparedStatement != null) {
+        preparedStatement.close();
+      }
+
+      if (countPreparedStatement != null) {
+        countPreparedStatement.close();
+      }
+    } catch(SQLException e) {
+
+    }
   }
 
   @Override
@@ -98,7 +115,7 @@ public class JDBCQuery<T extends Row> extends Query<T> {
     q.extractionSQL = this.extractionSQL;
     q.limitSQL = this.limitSQL;
     q.orderSQL = this.orderSQL;
-    q.preparedStatement = null;
+
     return q;
   }
 

@@ -14,4 +14,5 @@ public interface RowIterator<T extends Row> extends Iterable<T>, Iterator<T>{
 
   List<T> toList() throws DatabaseException;
 
+  void close();
 }

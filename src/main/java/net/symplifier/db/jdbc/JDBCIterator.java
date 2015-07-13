@@ -25,6 +25,14 @@ public class JDBCIterator<T extends Row> implements RowIterator<T> {
     this.primaryModel = primaryModel;
   }
 
+  public void close() {
+    try {
+      rs.close();
+    } catch(SQLException e) {
+
+    }
+  }
+
   @Override
   public boolean hasNext() {
     try {
