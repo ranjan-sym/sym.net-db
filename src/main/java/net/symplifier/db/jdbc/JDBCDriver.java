@@ -24,27 +24,27 @@ public class JDBCDriver implements Driver {
   }
 
   public void begin() throws DatabaseException {
-    try {
-      connection.setAutoCommit(false);
-    } catch(SQLException e) {
-      throw new DatabaseException("Error while trying to start transaction", e);
-    }
+//    try {
+//      connection.setAutoCommit(false);
+//    } catch(SQLException e) {
+//      throw new DatabaseException("Error while trying to start transaction", e);
+//    }
   }
 
   public void commit() throws DatabaseException {
-    try {
-      connection.commit();
-    } catch(SQLException e) {
-      throw new DatabaseException("Error while trying to commit transaction", e);
-    }
+//    try {
+//      connection.commit();
+//    } catch(SQLException e) {
+//      throw new DatabaseException("Error while trying to commit transaction", e);
+//    }
   }
 
   public void rollback() throws DatabaseException {
-    try {
-      connection.rollback();
-    } catch(SQLException e) {
-      throw new DatabaseException("Error while trying to rollback transaction", e);
-    }
+//    try {
+//      connection.rollback();
+//    } catch(SQLException e) {
+//      throw new DatabaseException("Error while trying to rollback transaction", e);
+//    }
   }
 
   @Override
