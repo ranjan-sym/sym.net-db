@@ -242,8 +242,8 @@ public abstract class Model<T extends Row> {
       // We expect the column definition fields to be public static final
       // But not mandatory, only throw a warning in case the Column Fields
       // are not defined public static final
-      if (Modifier.isStatic(modifiers) || Modifier.isFinal(modifiers)) {
-        LOGGER.warn("The column definition in the Model class is expected to be \"static final\"");
+      if (!Modifier.isStatic(modifiers) || !Modifier.isFinal(modifiers)) {
+        LOGGER.warn("The column definition in the Model class '" + modelClass + "' is expected to be \"static final\"");
       }
 
       // We found a field type, Let's match it with the row
