@@ -8,12 +8,14 @@ import net.symplifier.tests.db.Event;
  */
 public class EventModel extends Model<Event> {
 
-  public static final Column<String> code = new Column<>("code", String.class);
-  public static final Column<String> type = new Column<>("type", String.class);
-  public static final Column<String> description = new Column<>("description", String.class);
-  public static final Column<Boolean> triggerOn = new Column<>("trigger_on", Boolean.class);
+  public final Column<String>  code = new Column<>("code", String.class);
+  public final Column<String>  type = new Column<>("type", String.class);
+  public final Column<String>  description = new Column<>("description", String.class);
+  public final Column<Boolean> triggerOn = new Column<>("trigger_on", Boolean.class);
 
-  public EventModel(Schema schema, String name) {
-    super(schema, name);
+  @Override
+  protected Class<Event> getModelType() {
+    return Event.class;
   }
+
 }

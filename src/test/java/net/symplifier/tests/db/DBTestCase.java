@@ -1,13 +1,11 @@
 package net.symplifier.tests.db;
 
 import net.symplifier.db.DatabaseException;
-import net.symplifier.db.Filter;
+import net.symplifier.db.filter.Filter;
 import net.symplifier.db.Query;
+import net.symplifier.db.Schema;
 import net.symplifier.db.jdbc.JDBCDriver;
-import net.symplifier.tests.db.system.EventLogModel;
-import net.symplifier.tests.db.system.GeneratorModel;
-import net.symplifier.tests.db.system.LocationModel;
-import net.symplifier.tests.db.system.TestSystem;
+import net.symplifier.tests.db.system.*;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -31,7 +29,19 @@ public class DBTestCase {
   private TestSystem Schema;
 
   @Before
-  public void createSchema() throws IOException, DatabaseException, ParseException {
+  public void createSchema() throws IOException, ParseException {
+
+    Schema schema = new Schema();
+
+
+
+    app.getSchema(MySchema.class).
+
+
+    schema.get(EventModel.class).code
+
+
+
 
     REF_DATE_TS = DATE_TIME_FORMAT.parse("2000-01-24 16:00:00").getTime();
     // Delete temporary files that might have been created before
