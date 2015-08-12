@@ -1,5 +1,7 @@
 package net.symplifier.db;
 
+import net.symplifier.db.columns.Column;
+import net.symplifier.db.columns.PrimaryKey;
 import net.symplifier.db.exceptions.ModelException;
 
 import java.lang.reflect.*;
@@ -19,7 +21,8 @@ class ModelScheme<T extends Model> {
   private final Model.Factory<T> factory;
 
   /* The columns on a model */
-  private final Map<String, Column> columns = new HashMap<>();
+  private final PrimaryKey<T> primaryKeyColumn;
+  private final Map<String, Column> columns = new LinkedHashMap<>();
 
   /* Cache of model instances */
   private final WeakHashMap<Long, ModelInstance> cache = new WeakHashMap<>();
@@ -39,7 +42,7 @@ class ModelScheme<T extends Model> {
     // Let's see if this is a root model or if there is some ancestor that can
     // be the root
     Class<? extends Model> parent = (Class<? extends Model>)clazz.getSuperclass();
-    this.parent = (parent == Model.class) ? null : schema.find(parent);
+    this.parent = (parent == Model.class) ? null : schema.getModelScheme(parent);
 
     // if this scheme has a parent, then it means it must be a children of that
     // scheme. This feature would be useful in normalizing the models from
@@ -48,6 +51,8 @@ class ModelScheme<T extends Model> {
       this.parent.children.add(this);
     }
 
+
+    PrimaryKey<T> primaryKeyColumn = null;
 
     // Let's find out all the columns defined on this class by reflection
     java.lang.reflect.Field[] fields = clazz.getDeclaredFields();
@@ -72,6 +77,14 @@ class ModelScheme<T extends Model> {
         // Get the column instance
         Column col = (Column)field.get(clazz);
 
+        if (col instanceof PrimaryKey) {
+          if (primaryKeyColumn != null) {
+            throw new ModelException(clazz, "Multiple Primary Key are not allowed");
+          }
+          primaryKeyColumn = (PrimaryKey<T>)col;
+          continue;
+        }
+
         // See if the name given to the column is already used
         if (columns.containsKey(col.getName())) {
           throw new ModelException(clazz, "Column field " + field
@@ -86,8 +99,20 @@ class ModelScheme<T extends Model> {
         throw new ModelException(clazz, "Column field " + field + " is not accessible");
       }
     }
+
+    if (primaryKeyColumn == null) {
+      throw new ModelException(clazz, "No primary key defined");
+    }
+    this.primaryKeyColumn = primaryKeyColumn;
   }
 
+  public PrimaryKey<T> getPrimaryKeyColumn() {
+    return primaryKeyColumn;
+  }
+
+  public Iterable<Column> getColumns() {
+    return columns.values();
+  }
 
   Class<? extends Model> getModelClass() {
     return modelClass;

@@ -1,6 +1,6 @@
 package net.symplifier.db.helper;
 
-import net.symplifier.db.Column;
+import net.symplifier.db.columns.Column;
 import net.symplifier.db.Row;
 import net.symplifier.db.Schema;
 

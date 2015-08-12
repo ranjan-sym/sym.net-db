@@ -1,17 +1,21 @@
 package net.symplifier.db;
 
 import net.symplifier.db.annotations.Table;
+import net.symplifier.db.columns.Column;
 import net.symplifier.db.exceptions.ModelException;
+import net.symplifier.db.query.Query;
+import net.symplifier.db.query.QueryBuilder;
 
 import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Created by ranjan on 7/27/15.
  */
 public class Schema {
 
-  private final Map<String, ModelScheme<? extends Model>> models =
+  private final Map<Class<? extends Model>, ModelScheme<? extends Model>> modelsByClass =
+          new HashMap<>();
+  private final Map<String, ModelScheme<? extends Model>> modelsByName =
           new HashMap<>();
 
 
@@ -19,12 +23,23 @@ public class Schema {
 
   public Schema(Driver driver) {
     assert(driver != null);
-
     this.driver = driver;
   }
 
+  public Driver getDriver() {
+    return driver;
+  }
+
+  public <T extends Model> ModelScheme<T> getModelScheme(Class<T> clazz) {
+    return (ModelScheme<T>)modelsByClass.get(clazz);
+  }
+
+  public ModelScheme<? extends Model> getModelScheme(String name) {
+    return modelsByName.get(name);
+  }
+
   /**
-   * Registers the given Model class with the schema with a default Factory
+   * Registers the given Model class with the schema with a pages.private Factory
    * to generate the model instance
    *
    * @param clazz The Model class to be registered
@@ -45,7 +60,7 @@ public class Schema {
   public <T extends Model> void registerModel(Class<T> clazz, Model.Factory<T> factory) {
     assert(factory != null);
     // registering a model multiple times is not allowed
-    if (models.containsKey(clazz)) {
+    if (modelsByClass.containsKey(clazz)) {
       throw new ModelException(clazz, "Factory already registered");
     }
 
@@ -53,7 +68,10 @@ public class Schema {
     Table table = clazz.getAnnotation(Table.class);
     String name = table==null?toDBName(clazz.getSimpleName()):table.value();
 
-    models.put(name, new ModelScheme<T>(factory, clazz));
+    ModelScheme<T> scheme = new ModelScheme<>(this, factory, clazz);
+
+    modelsByClass.put(clazz, scheme);
+    modelsByName.put(name, scheme);
   }
 
   private final ThreadLocal<Session> session = new ThreadLocal<Session>() {
@@ -64,12 +82,11 @@ public class Schema {
   };
 
   public <T extends Model> T createModel(Class<T> modelClass) {
-    return null;
+    return (T)modelsByClass.get(modelClass).createInstance(this);
   }
 
-
-  public <T extends Model> T createModel(String name) {
-    return (T)models.get(name).createInstance(this);
+  public Model createModel(String name) {
+    return modelsByName.get(name).createInstance(this);
   }
 
 
@@ -113,7 +130,7 @@ public class Schema {
 //      } catch (IllegalAccessException e) {
 //        throw new ModelException("The database model constructor is not accessible for " + clazz.getName(), e);
 //      } catch (InstantiationException e) {
-//        throw new ModelException("The database model doesn't have a default constructor in " + clazz.getName(), e);
+//        throw new ModelException("The database model doesn't have a pages.private constructor in " + clazz.getName(), e);
 //      }
 //
 //    }
@@ -123,28 +140,7 @@ public class Schema {
 //    return (T)models.get(clazz);
 //  }
 
-
-  <M extends Model> Query<M> query(Class<M> modelClass) {
-    return query(modelClass, false);
-  }
-
-  <M extends Model> Query<M> query(Class<M> modelClass, boolean normalized) {
-    return null;
-  }
-
-  /**
-   * Finds a ModelScheme for the given class type
-   *
-   * @param clazz The Model class whose scheme is to be retrieved
-   * @return The ModelScheme for the given class or null
-   */
-  ModelScheme find(Class<? extends Model> clazz) {
-    for(ModelScheme scheme: models.values()) {
-      if(scheme.getModelClass() == clazz) {
-        return scheme;
-      }
-    }
-
+  public <M extends Model> Query<M> createQuery(QueryBuilder<M> builder) {
     return null;
   }
 
@@ -174,11 +170,4 @@ public class Schema {
     return res.toString();
   }
 
-  public <F, M> Field<F> createField(M model, Column<M, F> column) {
-
-  }
-
-  public <F, M> Field<F> createField(M model, Column<M, F> column, F value) {
-
-  }
 }
