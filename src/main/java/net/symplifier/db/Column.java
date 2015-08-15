@@ -3,6 +3,9 @@ package net.symplifier.db;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * The basic model components that identifies a column in a table
  *
@@ -20,9 +23,11 @@ public class Column<M extends Model, T> implements ModelComponent<M> {
   /* The position of the model on the hierarchy */
   private int level;
   /* The variable name of this column in the model */
-  private String name;
+  private java.lang.String name;
   /* The field name of this column in the database */
-  private String fieldName;
+  private java.lang.String fieldName;
+
+  final Map<ModelStructure, Integer> implementationLevel = new HashMap<>();
 
   /* The position of this column in the model */
   private int index;
@@ -45,6 +50,10 @@ public class Column<M extends Model, T> implements ModelComponent<M> {
     this.model = structure;
     this.index = structure.getColumnCount();
     this.level = structure.getParents().length;
+  }
+
+  void setName(java.lang.String name) {
+    this.name = name;
   }
 
   /**
@@ -78,7 +87,7 @@ public class Column<M extends Model, T> implements ModelComponent<M> {
    *
    * @return field name
    */
-  public String getFieldName() {
+  public java.lang.String getFieldName() {
     return fieldName;
   }
 
@@ -89,6 +98,83 @@ public class Column<M extends Model, T> implements ModelComponent<M> {
   public ModelStructure<M> getModel() {
     return model;
   }
+
+
+  /* BEGIN - The query helper methods */
+
+  public Query.Filter<M> eq(T value) {
+    return eq(new Parameter<>(value));
+  }
+
+  public Query.Filter<M> notEq(T value) {
+    return notEq(new Parameter<>(value));
+  }
+
+  public Query.Filter<M> lt(T value) {
+    return lt(new Parameter<>(value));
+  }
+
+  public Query.Filter<M> gt(T value) {
+    return gt(new Parameter<T>(value));
+  }
+
+  public Query.Filter<M> ltEq(T value) {
+    return ltEq(new Parameter<T>(value));
+  }
+
+  public Query.Filter<M> gtEq(T value) {
+    return gtEq(new Parameter<T>(value));
+  }
+
+  private Query.Filter<M> op(Query.FilterOp op) {
+    Query.Filter<M> f = new Query.Filter<>();
+    f.append(this);
+    f.append(op);
+    return f;
+  }
+
+  private Query.Filter<M> op(Query.FilterOp op, Parameter<T> value) {
+    Query.Filter<M> f = new Query.Filter<>();
+    f.append(this);
+    f.append(op);
+    f.append(value);
+    return f;
+  }
+
+  public Query.Filter<M> eq(Parameter<T> value) {
+    return op(Query.FilterOp.eq, value);
+  }
+
+  public Query.Filter<M> notEq(Parameter<T> value) {
+    return op(Query.FilterOp.notEq, value);
+  }
+
+  public Query.Filter<M> lt(Parameter<T> value) {
+    return op(Query.FilterOp.lt, value);
+  }
+
+  public Query.Filter<M> gt(Parameter<T> value) {
+    return op(Query.FilterOp.gt, value);
+  }
+
+  public Query.Filter<M> ltEq(Parameter<T> value) {
+    return op(Query.FilterOp.lTeq, value);
+  }
+
+  public Query.Filter<M> gtEq(Parameter<T> value) {
+    return op(Query.FilterOp.gtEq, value);
+  }
+
+  public Query.Filter<M> isNull() {
+    return op(Query.FilterOp.isNull);
+  }
+
+  public Query.Filter<M> isNotNull() {
+    return op(Query.FilterOp.isNotNull);
+  }
+
+
+
 
   /**
    * A reference column that points to another model
@@ -127,12 +213,12 @@ public class Column<M extends Model, T> implements ModelComponent<M> {
     }
 
     @Override
-    public String getSourceFieldName() {
+    public java.lang.String getSourceFieldName() {
       return getFieldName();
     }
 
     @Override
-    public String getTargetFieldName() {
+    public java.lang.String getTargetFieldName() {
       return referenceModel.getPrimaryKeyField();
     }
   }
@@ -159,7 +245,7 @@ public class Column<M extends Model, T> implements ModelComponent<M> {
    * Column builder
    */
   public static class Builder {
-    private String name = null;
+    private java.lang.String name = null;
     private int cacheLimit = 0;
 
     /**
@@ -167,7 +253,7 @@ public class Column<M extends Model, T> implements ModelComponent<M> {
      * @param name The name to be used as column field name
      * @return self chaining
      */
-    public Builder setName(String name) {
+    public Builder setName(java.lang.String name) {
       this.name = name;
       return this;
     }
@@ -187,7 +273,7 @@ public class Column<M extends Model, T> implements ModelComponent<M> {
      * The field name for the column
      * @return string
      */
-    String getName() {
+    java.lang.String getName() {
       return name;
     }
 
