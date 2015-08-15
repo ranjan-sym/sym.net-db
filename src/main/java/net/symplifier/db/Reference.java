@@ -28,6 +28,18 @@ public interface Reference<M extends Model, T extends Model> extends ModelCompon
   ModelStructure<T> getTargetType();
 
   /**
+   * Makes the join between the models automatic, i.e., even if the user doesn't
+   * use this reference in the join explicitly, this reference would be used
+   * anyway.
+   *
+   * Note: Not implemented yet. Should always return {@code false}
+   *
+   * @return {@code false} as this feature is not implemented yet
+   */
+  default boolean isAutoLoaded() {
+    return false;
+  }
+  /**
    * Makes the join between the models either inner or outer (LEFT)
    *
    * @return {@code true} if the relationship is inclusive otherwise {@code false}
