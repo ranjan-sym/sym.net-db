@@ -1,7 +1,7 @@
 package net.symplifier.db;
 
 /**
- * The underlying data class that actually keeps all the model data. A SchemaModel
+ * The underlying data class that actually keeps all the model data. A ModelInstance
  * provides a layer on top of this
  *
  * Created by ranjan on 8/12/15.
