@@ -48,11 +48,29 @@ public interface Query<T extends Model> {
       return this;
     }
 
+    public void append(Column<T, ?> col) {
+
+    }
+
+    public void append(FilterEntity entity) {
+      entities.add(entity);
+    }
+
   }
 
   enum FilterOp implements FilterEntity {
     and,
     or,
+
+    eq,
+    notEq,
+    lt,
+    ltEq,
+    gt,
+    gtEq,
+
+    isNull,
+    isNotNull
 
   }
 
