@@ -158,7 +158,7 @@ public class Column<M extends Model, T> implements ModelComponent<M> {
   }
 
   public Query.Filter<M> ltEq(Parameter<T> value) {
-    return op(Query.FilterOp.lTeq, value);
+    return op(Query.FilterOp.ltEq, value);
   }
 
   public Query.Filter<M> gtEq(Parameter<T> value) {
