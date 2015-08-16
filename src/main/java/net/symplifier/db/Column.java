@@ -12,7 +12,7 @@ import java.util.Map;
  * @param <M> The type of the Model
  * @param <T> The type of the field
  */
-public class Column<M extends Model, T> implements ModelComponent<M> {
+public abstract class Column<M extends Model, T> implements ModelComponent<M>, Query.FilterEntity {
 
   private final Class<T> valueType;
 
@@ -26,6 +26,10 @@ public class Column<M extends Model, T> implements ModelComponent<M> {
   private java.lang.String name;
   /* The field name of this column in the database */
   private java.lang.String fieldName;
+
+  private Object parameterSetter;
+
+  private Object field;
 
   final Map<ModelStructure, Integer> implementationLevel = new HashMap<>();
 
@@ -43,6 +47,8 @@ public class Column<M extends Model, T> implements ModelComponent<M> {
     cache = builder.cacheLimit <= 0 ? null :
             CacheBuilder.newBuilder().maximumSize(builder.getCacheLimit()).build();
 
+
+
   }
 
   @Override
@@ -50,6 +56,22 @@ public class Column<M extends Model, T> implements ModelComponent<M> {
     this.model = structure;
     this.index = structure.getColumnCount();
     this.level = structure.getParents().length;
+    this.parameterSetter = structure.getSchema().getDriver().getParameterSetter(this.valueType);
+    this.field = structure.getSchema().getDriver().getField(this.valueType);
+  }
+
+  public boolean isPrimary() {
+    return false;
+  }
+
+
+
+  public Object getParameterSetter() {
+    return parameterSetter;
+  }
+
+  public Object getField() {
+    return field;
   }
 
   void setName(java.lang.String name) {
@@ -110,12 +132,9 @@ public class Column<M extends Model, T> implements ModelComponent<M> {
     return like(new Query.Parameter<>(value));
   }
 
-  public Query.Filter<M> in(T ... values) {
-    Query.Parameter<T> p[] = new Query.Parameter[values.length];
-    for(int i=0; i<values.length; ++i) {
-      p[i] = new Query.Parameter<T>(values[i]);
-    }
-    return in(p);
+  @SafeVarargs
+  public final Query.Filter<M> in(T ... values) {
+    return op(Query.FilterOp.in, new Query.ParameterList<T>(values).setColumn(this));
   }
 
   public Query.Filter<M> notEq(T value) {
@@ -145,7 +164,7 @@ public class Column<M extends Model, T> implements ModelComponent<M> {
     return f;
   }
 
-  private Query.Filter<M> op(Query.FilterOp op, Query.Parameter<T> value) {
+  private Query.Filter<M> op(Query.FilterOp op, Query.FilterEntity value) {
     Query.Filter<M> f = new Query.Filter<>();
     f.append(this);
     f.append(op);
@@ -154,42 +173,37 @@ public class Column<M extends Model, T> implements ModelComponent<M> {
   }
 
   public Query.Filter<M> eq(Query.Parameter<T> value) {
-    return op(Query.FilterOp.eq, value);
+    return op(Query.FilterOp.eq, value.init(this));
   }
 
   public Query.Filter<M> notEq(Query.Parameter<T> value) {
-    return op(Query.FilterOp.notEq, value);
+    return op(Query.FilterOp.notEq, value.init(this));
   }
 
-  public Query.Filter<M> in(Query.Parameter<T> ... values) {
-    Query.Filter<M> f = new Query.Filter<>();
-    f.append(this);
-    f.append(Query.FilterOp.in);
-    for(Query.Parameter<T> v: values) {
-      f.append(v);
-    }
-    return f;
+  @SafeVarargs
+  public final Query.Filter<M> in(Query.Parameter<T> ... values) {
+    return op(Query.FilterOp.in, new Query.ParameterList<T>(values).setColumn(this));
   }
 
   public Query.Filter<M> like(Query.Parameter<T> value) {
-    return op(Query.FilterOp.like, value);
+    return op(Query.FilterOp.like, value.init(this));
   }
 
 
   public Query.Filter<M> lt(Query.Parameter<T> value) {
-    return op(Query.FilterOp.lt, value);
+    return op(Query.FilterOp.lt, value.init(this));
   }
 
   public Query.Filter<M> gt(Query.Parameter<T> value) {
-    return op(Query.FilterOp.gt, value);
+    return op(Query.FilterOp.gt, value.init(this));
   }
 
   public Query.Filter<M> ltEq(Query.Parameter<T> value) {
-    return op(Query.FilterOp.ltEq, value);
+    return op(Query.FilterOp.ltEq, value.init(this));
   }
 
   public Query.Filter<M> gtEq(Query.Parameter<T> value) {
-    return op(Query.FilterOp.gtEq, value);
+    return op(Query.FilterOp.gtEq, value.init(this));
   }
 
   public Query.Filter<M> isNull() {
@@ -201,6 +215,21 @@ public class Column<M extends Model, T> implements ModelComponent<M> {
   }
 
 
+  public static class Primary<M extends Model> extends Column<M, Long> {
+
+    public Primary() {
+      super(Long.class);
+    }
+
+    public Primary(Builder builder) {
+      super(Long.class, builder);
+    }
+
+    @Override
+    public boolean isPrimary() {
+      return true;
+    }
+  }
 
 
   /**
