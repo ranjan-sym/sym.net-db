@@ -26,4 +26,12 @@ public interface Driver {
    */
   Object getField(Class valueType);
 
+  /**
+   * Create a query object from the query builder
+   *
+   * @param builder The builder used for creating the query
+   * @param <T> The Type of the model
+   * @return A query object that could be used for retrieving data from the database
+   */
+  <T extends Model> Query<T> createQuery(Query.Builder<T> builder);
 }
