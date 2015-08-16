@@ -42,7 +42,7 @@ public class ModelStructure<T extends Model> {
           .build();
 
   /* The list of all the columns of this model, mapped by name of the column */
-  private final Map<String, Column> columns = new HashMap<>();
+  private final Column<T, ?> columns[];
 
   /* The list of all the references of this model */
   /* This list is not being used at the moment, and may be useful only in case
@@ -100,6 +100,7 @@ public class ModelStructure<T extends Model> {
     }
 
     Set<Reference> references = new LinkedHashSet<>();
+    Set<Column<T, ?>> columns = new LinkedHashSet<>();
 
     // Get stock of all the columns that belong to the model
     for (Field f : modelClass.getDeclaredFields()) {
@@ -111,7 +112,7 @@ public class ModelStructure<T extends Model> {
             col.setName(f.getName());
             col.onInit(this);
 
-            columns.put(col.getFieldName(), col);
+            columns.add(col);
           }
 
           if (Reference.class.isAssignableFrom(f.getType())) {
@@ -123,15 +124,18 @@ public class ModelStructure<T extends Model> {
       }
     }
 
+    this.columns = columns.toArray(new Column<T, ?>[columns.size()]);
     this.references = references.toArray(new Reference[references.size()]);
+
+
 
     implementations = impls.toArray(new ModelStructure[impls.size()]);
     if (!isModelInterface) {
       // Set level on all implementations for this model structure
       for(int i=0; i<implementations.length; ++i) {
-        Map<String, Column> columns = implementations[i].columns;
-        for(Map.Entry<String, Column> entry:columns.entrySet()) {
-          entry.getValue().implementationLevel.put(this, parents.length + 1 + i);
+        Column implColumns[] = implementations[i].columns;
+        for(Column col:implColumns) {
+          col.implementationLevel.put(this, parents.length + 1 + i);
         }
       }
     }
@@ -163,25 +167,29 @@ public class ModelStructure<T extends Model> {
     return create(new ModelRow<>(this));
   }
 
-  public T get(long id) {
+  public ModelRow<T> getRow(long id) {
     try {
-      ModelRow<T> row = rowCache.get(id, new Callable<ModelRow<T>>() {
+      return rowCache.get(id, new Callable<ModelRow<T>>() {
         @Override
         public ModelRow<T> call() throws Exception {
           return new ModelRow<>(ModelStructure.this);
         }
       });
-
-      return create(row);
-
     } catch (ExecutionException e) {
       return null;
     }
   }
 
-  public int getColumnCount() {
-    return columns.size();
+  public T get(long id) {
+    return create(getRow(id));
   }
 
+  public int getColumnCount() {
+    return columns.length;
+  }
+
+  public Column<T, ?> getColumn(int index) {
+    return columns[index];
+  }
 
 }
