@@ -103,27 +103,39 @@ public class Column<M extends Model, T> implements ModelComponent<M> {
   /* BEGIN - The query helper methods */
 
   public Query.Filter<M> eq(T value) {
-    return eq(new Parameter<>(value));
+    return eq(new Query.Parameter<>(value));
+  }
+
+  public Query.Filter<M> like(T value) {
+    return like(new Query.Parameter<>(value));
+  }
+
+  public Query.Filter<M> in(T ... values) {
+    Query.Parameter<T> p[] = new Query.Parameter[values.length];
+    for(int i=0; i<values.length; ++i) {
+      p[i] = new Query.Parameter<T>(values[i]);
+    }
+    return in(p);
   }
 
   public Query.Filter<M> notEq(T value) {
-    return notEq(new Parameter<>(value));
+    return notEq(new Query.Parameter<>(value));
   }
 
   public Query.Filter<M> lt(T value) {
-    return lt(new Parameter<>(value));
+    return lt(new Query.Parameter<>(value));
   }
 
   public Query.Filter<M> gt(T value) {
-    return gt(new Parameter<T>(value));
+    return gt(new Query.Parameter<T>(value));
   }
 
   public Query.Filter<M> ltEq(T value) {
-    return ltEq(new Parameter<T>(value));
+    return ltEq(new Query.Parameter<T>(value));
   }
 
   public Query.Filter<M> gtEq(T value) {
-    return gtEq(new Parameter<T>(value));
+    return gtEq(new Query.Parameter<T>(value));
   }
 
   private Query.Filter<M> op(Query.FilterOp op) {
@@ -133,7 +145,7 @@ public class Column<M extends Model, T> implements ModelComponent<M> {
     return f;
   }
 
-  private Query.Filter<M> op(Query.FilterOp op, Parameter<T> value) {
+  private Query.Filter<M> op(Query.FilterOp op, Query.Parameter<T> value) {
     Query.Filter<M> f = new Query.Filter<>();
     f.append(this);
     f.append(op);
@@ -141,27 +153,42 @@ public class Column<M extends Model, T> implements ModelComponent<M> {
     return f;
   }
 
-  public Query.Filter<M> eq(Parameter<T> value) {
+  public Query.Filter<M> eq(Query.Parameter<T> value) {
     return op(Query.FilterOp.eq, value);
   }
 
-  public Query.Filter<M> notEq(Parameter<T> value) {
+  public Query.Filter<M> notEq(Query.Parameter<T> value) {
     return op(Query.FilterOp.notEq, value);
   }
 
-  public Query.Filter<M> lt(Parameter<T> value) {
+  public Query.Filter<M> in(Query.Parameter<T> ... values) {
+    Query.Filter<M> f = new Query.Filter<>();
+    f.append(this);
+    f.append(Query.FilterOp.in);
+    for(Query.Parameter<T> v: values) {
+      f.append(v);
+    }
+    return f;
+  }
+
+  public Query.Filter<M> like(Query.Parameter<T> value) {
+    return op(Query.FilterOp.like, value);
+  }
+
+
+  public Query.Filter<M> lt(Query.Parameter<T> value) {
     return op(Query.FilterOp.lt, value);
   }
 
-  public Query.Filter<M> gt(Parameter<T> value) {
+  public Query.Filter<M> gt(Query.Parameter<T> value) {
     return op(Query.FilterOp.gt, value);
   }
 
-  public Query.Filter<M> ltEq(Parameter<T> value) {
+  public Query.Filter<M> ltEq(Query.Parameter<T> value) {
     return op(Query.FilterOp.ltEq, value);
   }
 
-  public Query.Filter<M> gtEq(Parameter<T> value) {
+  public Query.Filter<M> gtEq(Query.Parameter<T> value) {
     return op(Query.FilterOp.gtEq, value);
   }
 
