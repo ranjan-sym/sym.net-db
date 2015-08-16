@@ -86,6 +86,11 @@ public class Schema {
     return impl;
   }
 
+  /**
+   * Get the primary schema
+   *
+   * @return {@link Schema}
+   */
   public static Schema get() {
     return primarySchema;
   }
