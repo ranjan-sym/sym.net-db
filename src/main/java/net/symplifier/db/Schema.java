@@ -1,54 +1,57 @@
 package net.symplifier.db;
 
 import net.symplifier.db.annotations.Table;
-import net.symplifier.db.columns.Column;
-import net.symplifier.db.exceptions.ModelException;
-import net.symplifier.db.query.Query;
-import net.symplifier.db.query.QueryBuilder;
 
 import java.util.*;
 
 /**
+ * The central class for Database management
+ *
  * Created by ranjan on 7/27/15.
  */
 public class Schema {
+  private static Schema primarySchema = null;
 
-  private final Map<Class<? extends Model>, ModelScheme<? extends Model>> modelsByClass =
-          new HashMap<>();
-  private final Map<String, ModelScheme<? extends Model>> modelsByName =
-          new HashMap<>();
+  /** The complete list of all the models registered on this schema */
+  private final Map<Class<? extends Model>, ModelStructure<? extends Model>> allModels = new HashMap<>();
 
+  /** A mapping of the models by the name to its corresponding class */
+  private final Map<String, Class<? extends Model>> namedModels = new HashMap<>();
 
+  /** The driver to be used by this schema */
   private final Driver driver;
 
   public Schema(Driver driver) {
-    assert(driver != null);
+    assert (driver != null);
     this.driver = driver;
+    if (primarySchema == null) {
+      primarySchema = this;
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  public <T extends Model> T get(Class<T> modelClass) {
+    return (T)allModels.get(modelClass).create();
+  }
+
+  @SuppressWarnings("unchecked")
+  public <T extends Model> T get(Class<T> clazz, final long id) {
+    final ModelStructure<T> impl = (ModelStructure<T>) allModels.get(clazz);
+    return impl.get(id);
   }
 
   public Driver getDriver() {
     return driver;
   }
 
-  public <T extends Model> ModelScheme<T> getModelScheme(Class<T> clazz) {
-    return (ModelScheme<T>)modelsByClass.get(clazz);
+  public <T extends Model> ModelStructure<T> registerModel(Class<T> clazz) {
+    return registerModel(clazz, new Model.DefaultFactory<>(clazz));
   }
 
-  public ModelScheme<? extends Model> getModelScheme(String name) {
-    return modelsByName.get(name);
+  @SuppressWarnings("unchecked")
+  public <T extends Model> ModelStructure<T> getModelStructure(Class<T> clazz) {
+    return (ModelStructure<T>)allModels.get(clazz);
   }
-
-  /**
-   * Registers the given Model class with the schema with a pages.private Factory
-   * to generate the model instance
-   *
-   * @param clazz The Model class to be registered
-   * @param <T> The type of the Model
-   */
-  private <T extends Model> void registerModel(Class<T> clazz) {
-    registerModel(clazz, new Model.DefaultFactory<>(clazz));
-  }
-
   /**
    * Registers the given Model class with the schema with a custom Model
    * Factory
@@ -57,37 +60,47 @@ public class Schema {
    * @param factory The Model factory to be used to generate the model instance
    * @param <T> The type of the Model
    */
-  public <T extends Model> void registerModel(Class<T> clazz, Model.Factory<T> factory) {
+  public <T extends Model> ModelStructure<T> registerModel(Class<T> clazz, Model.Factory<T> factory) {
     assert(factory != null);
-    // registering a model multiple times is not allowed
-    if (modelsByClass.containsKey(clazz)) {
-      throw new ModelException(clazz, "Factory already registered");
+    return doRegisterModel(clazz, factory);
+  }
+
+  <T extends Model> ModelStructure<T> doRegisterModel(Class<T> clazz, Model.Factory<T> factory) {
+
+    @SuppressWarnings("unchecked")
+    ModelStructure<T> impl = (ModelStructure<T>)allModels.get(clazz);
+
+    if (impl != null) {
+      return impl;
     }
+
+    impl = new ModelStructure<>(this, clazz, factory);
+    allModels.put(clazz, impl);
 
     // Let's find out the name of the model as used in the database system
     Table table = clazz.getAnnotation(Table.class);
     String name = table==null?toDBName(clazz.getSimpleName()):table.value();
 
-    ModelScheme<T> scheme = new ModelScheme<>(this, factory, clazz);
+    namedModels.put(name, clazz);
 
-    modelsByClass.put(clazz, scheme);
-    modelsByName.put(name, scheme);
+    return impl;
   }
 
-  private final ThreadLocal<Session> session = new ThreadLocal<Session>() {
-    @Override
-    protected Session initialValue() {
-      return driver.createSession();
-    }
-  };
-
-  public <T extends Model> T createModel(Class<T> modelClass) {
-    return (T)modelsByClass.get(modelClass).createInstance(this);
+  public static Schema get() {
+    return primarySchema;
   }
 
-  public Model createModel(String name) {
-    return modelsByName.get(name).createInstance(this);
+  public <T extends Model> Query.Builder<T> query(Class<T> modelClass, Column<T, ?> ... columns) {
+    return new Query.Builder<>(this.getModelStructure(modelClass), columns);
   }
+
+//
+//  private final ThreadLocal<Session> session = new ThreadLocal<Session>() {
+//    @Override
+//    protected Session initialValue() {
+//      return driver.createSession();
+//    }
+//  };
 
 
   /* Stock of all the models that belong to this schema */
@@ -140,8 +153,8 @@ public class Schema {
 //    return (T)models.get(clazz);
 //  }
 
-  public <M extends Model> Query<M> createQuery(QueryBuilder<M> builder) {
-    return null;
+  public <T extends Model> Query<T> createQuery(Query.Builder<T> builder) {
+    return getDriver().createQuery(builder);
   }
 
   /**
