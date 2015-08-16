@@ -1,26 +1,97 @@
 package net.symplifier.db;
 
-import java.sql.Ref;
 import java.util.*;
 
 /**
+ * The data extraction Query
+ *
  * Created by ranjan on 8/13/15.
  */
 public interface Query<T extends Model> {
 
-  class Parameter<V> {
-    private final V defaultValue;
+  /**
+   * The placeholder for values used in the filter condition
+   *
+   * Created by ranjan on 8/14/15.
+   */
+  class Parameter<V> implements Query.FilterEntity {
 
+    private final V defaultValue;
+    private Object setter;
+
+    /**
+     * Creates a Parameter with a default value
+     *
+     * @param defaultValue The value to be used for the parameter if a value is
+     *                     not provided
+     */
     public Parameter(V defaultValue) {
       this.defaultValue = defaultValue;
     }
 
+    public Parameter init(Column<?, V> column) {
+      assert(this.setter == null);
+      setter = column.getParameterSetter();
+      return this;
+    }
+
+    public Object getSetter () {
+      return setter;
+    }
+
+    /**
+     * Get the default value for this parameter
+     *
+     * @return The default value
+     */
     public V getDefault() {
       return defaultValue;
     }
   }
 
+  class ParameterList<V> implements Query.FilterEntity {
+    private final List<Parameter> parameters = new ArrayList<>();
+    private Column<?, V> column;
+
+    @SafeVarargs
+    public ParameterList(V ... values) {
+      for(V v:values) {
+        parameters.add(new Parameter<>(v));
+      }
+    }
+
+    @SafeVarargs
+    public ParameterList(Parameter<V> ... values) {
+      Collections.addAll(parameters, values);
+    }
+
+    public ParameterList setColumn(Column<?, V> column) {
+      assert(this.column == null);
+      this.column = column;
+      return this;
+    }
+
+    public Column<?, V> getColumn() {
+      return column;
+    }
+
+    public List<Parameter> getParameters() {
+      return parameters;
+    }
+  }
+
+  interface Prepared<T extends Model> {
+
+    <V> Prepared<T> set(Parameter<V> parameter, V value);
+
+    Result<T> execute();
+  }
+
   interface Result<T extends Model> {
+
+    List<T> toList();
+
+    T next();
 
   }
 
@@ -30,10 +101,10 @@ public interface Query<T extends Model> {
 
   class Filter<T extends Model> implements FilterEntity {
 
-    private List<FilterEntity> entities;
+    private final List<FilterEntity> entities = new ArrayList<>();
 
-    public void add(FilterEntity entity) {
-      entities.add(entity);
+    public List<FilterEntity> getEntities() {
+      return entities;
     }
 
     public Filter<T> and(Filter<T> filter) {
@@ -46,10 +117,6 @@ public interface Query<T extends Model> {
       entities.add(FilterOp.or);
       entities.add(filter);
       return this;
-    }
-
-    public void append(Column<T, ?> col) {
-
     }
 
     public void append(FilterEntity entity) {
@@ -68,6 +135,8 @@ public interface Query<T extends Model> {
     ltEq,
     gt,
     gtEq,
+    in,
+    like,
 
     isNull,
     isNotNull
@@ -143,19 +212,19 @@ public interface Query<T extends Model> {
 
 
     public Builder<T> where(Filter<T> filter) {
-      filter.add(filter);
+      filter.append(filter);
       return this;
     }
 
     public Builder<T> and(Filter<T> filter) {
-      filter.add(FilterOp.and);
-      filter.add(filter);
+      filter.append(FilterOp.and);
+      filter.append(filter);
       return this;
     }
 
     public Builder<T> or(Filter<T> filter) {
-      filter.add(FilterOp.or);
-      filter.add(filter);
+      filter.append(FilterOp.or);
+      filter.append(filter);
       return this;
     }
 
@@ -243,6 +312,10 @@ public interface Query<T extends Model> {
       return reference;
     }
 
+    public List<Join> getJoinChildren() {
+      return joins;
+    }
+
     public Filter<T> getFilter() {
       return filter;
     }
@@ -255,27 +328,17 @@ public interface Query<T extends Model> {
       joins.add(join);
       return this;
     }
-
-
-
   }
 
-  Query<T> set(Parameter<String> parameter, String value);
-
-  Query<T> set(Parameter<Integer> parameter, Integer value);
-
-  Query<T> set(Parameter<Double> parameter, Double value);
-
-  Query<T> set(Parameter<Byte> parameter, Byte value);
-
-  Query<T> set(Parameter<Long> parameter, Long value);
-
-  Query<T> set(Parameter<Float> parameter, Float value);
-
-  Query<T> set(Parameter<Short> parameter, Short value);
-
-  Query<T> set(Parameter<byte[]> parameter, byte[] value);
-
+  /**
+   * Prepares and Executes the query to provide the result. This method uses the
+   * default values provided for the parameter of the query
+   *
+   * @return {@link Result} for retrieving data
+   */
   Result<T> execute();
 
+  <V> Prepared<T> set(Parameter<V> parameter, V value);
+
+  Prepared<T> prepare();
 }
