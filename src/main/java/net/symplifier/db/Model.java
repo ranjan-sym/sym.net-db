@@ -52,6 +52,10 @@ public interface Model {
     return get(column, column.getLevel());
   }
 
+  default <G, T extends Column.CustomType<G>> T get(Column.Custom<?, G, T> column) {
+    return column.getFromGeneric(get(column, column.getLevel()));
+  }
+
   /**
    * Set the value of the given column of this model.
    *
@@ -63,6 +67,11 @@ public interface Model {
    * @param <T> The type of the value
    */
   <T> void set(Column<?, T> column, int level, T value);
+
+  default <G, T extends Column.CustomType<G>> void set(Column.Custom<?, G, T> column, T value) {
+    set(column, column.getGeneric(value));
+  }
+
 
   /**
    * Default implementation for setting the value of the given column of this
