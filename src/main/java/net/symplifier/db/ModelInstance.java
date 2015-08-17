@@ -44,13 +44,20 @@ public class ModelInstance implements Model {
   }
 
   public class ModelSet {
-    private ModelRow[] rows;
+    private final ModelRow[] rows;
+    public ModelSet() {
+      rows = new ModelRow[structure.getEffectiveTablesCount()];
+      for(int i=0;i<rows.length; ++i) {
+        rows[i] = new ModelRow(structure);
+      }
+    }
   }
 
   private ModelSet set;
 
   public ModelInstance(ModelStructure structure) {
     this.structure = structure;
+    set = new ModelSet();
   }
 
 
