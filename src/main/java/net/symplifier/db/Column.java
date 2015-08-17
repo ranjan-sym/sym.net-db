@@ -297,6 +297,40 @@ public abstract class Column<M extends Model, T> implements ModelComponent<M>, Q
     }
   }
 
+  public static abstract class CustomType<T> {
+    protected T genericValue;
+
+    public CustomType(T generic) {
+      this.genericValue = generic;
+    }
+
+    public T getGeneric() {
+      return genericValue;
+    }
+
+    public void setGeneric(T value) {
+      this.genericValue = value;
+    }
+  }
+
+  public static class Custom<M extends Model, G, T extends CustomType> extends Column<M, G> {
+
+    private final Class<T> customType;
+
+    public Custom(Class<T> customType, Class<G> genericType) {
+      this(customType, genericType, new Builder());
+    }
+
+    public Custom(Class<T> customType, Class<G> genericType, Builder builder) {
+      super(genericType, builder);
+      this.customType = customType;
+    }
+
+    public Class<T> getCustomType() {
+      return customType;
+    }
+  }
+
   /**
    * Column builder
    */
