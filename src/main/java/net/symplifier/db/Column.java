@@ -427,6 +427,16 @@ public abstract class Column<M extends Model, T> implements ModelComponent<M>, Q
     }
   }
 
+  public static class Double<M extends Model> extends Column<M, java.lang.Double> {
+
+    public Double() {
+      super(java.lang.Double.class);
+    }
+
+    public Double(Builder builder) {
+      super(java.lang.Double.class, builder);
+    }
+  }
 
 
   public static class Date<M extends Model> extends Column<M, java.util.Date> {
