@@ -394,26 +394,40 @@ public abstract class Column<M extends Model, T> implements ModelComponent<M>, Q
     }
   }
 
-  public static class String<M extends Model> extends Column<M, java.lang.String> {
+  public static class Text<M extends Model> extends Column<M, java.lang.String> {
 
-    public String() {
+    public Text() {
       super(java.lang.String.class);
     }
 
-    public String(Builder builder) {
+    public Text(Builder builder) {
       super(java.lang.String.class, builder);
     }
   }
 
-  public static class Integer<M extends Model> extends Column<M, java.lang.Integer> {
-    public Integer() {
+  public static class Int<M extends Model> extends Column<M, java.lang.Integer> {
+    public Int() {
       super(java.lang.Integer.class);
     }
 
-    public Integer(Builder builder) {
+    public Int(Builder builder) {
       super(java.lang.Integer.class, builder);
     }
   }
+
+  public static class Bool<M extends Model> extends Column<M, Boolean> {
+
+    public Bool() {
+      super(Boolean.class);
+    }
+
+
+    public Bool(Builder builder) {
+      super(Boolean.class, builder);
+    }
+  }
+
+
 
   public static class Date<M extends Model> extends Column<M, java.util.Date> {
     public Date() {
