@@ -59,6 +59,10 @@ public abstract class Column<M extends Model, T> implements ModelComponent<M>, Q
     this.level = structure.getParents().length;
     this.parameterSetter = structure.getSchema().getDriver().getParameterSetter(this.valueType);
     this.field = structure.getSchema().getDriver().getField(this.valueType);
+
+    if (fieldName == null) {
+      fieldName = Schema.toDBName(this.name);
+    }
   }
 
   public boolean isPrimary() {
