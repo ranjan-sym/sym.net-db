@@ -2,6 +2,7 @@ package net.symplifier.db;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import net.symplifier.db.exceptions.ModelException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,7 +32,7 @@ public abstract class Column<M extends Model, T> implements ModelComponent<M>, Q
 
   private Object field;
 
-  final Map<ModelStructure, Integer> implementationLevel = new HashMap<>();
+  final Map<ModelStructure, java.lang.Integer> implementationLevel = new HashMap<>();
 
   /* The position of this column in the model */
   private int index;
@@ -102,6 +103,15 @@ public abstract class Column<M extends Model, T> implements ModelComponent<M>, Q
    */
   public int getLevel() {
     return level;
+  }
+
+  public int getLevel(ModelStructure structure) {
+    java.lang.Integer l = implementationLevel.get(structure);
+    if (l == null) {
+      throw new ModelException(getModel().getType(), "Invalid model structure. Cannot find implementation of " + structure.getTableName());
+    } else {
+      return l;
+    }
   }
 
   /**
