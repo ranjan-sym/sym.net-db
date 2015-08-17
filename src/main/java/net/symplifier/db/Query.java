@@ -268,12 +268,12 @@ public interface Query<T extends Model> {
       return limit(new Parameter<>(limit), new Parameter<>(offset));
     }
 
-    public <U extends Model, V extends U> Builder<T> join(Class<V> referenceClass, Reference<T, U> reference, Column<V, ?> ... columns) {
+//    public <U extends Model, V extends U> Builder<T> join(Class<V> referenceClass, Reference<T, U> reference, Column<V, ?> ... columns) {
+//
+//      return this;
+//    }
 
-      return this;
-    }
-
-    public <U extends Model, V extends U> Builder<T> join(Reference<T, U> reference, Column<V, ?> ... columns) {
+    public <U extends Model, V extends U> Builder<T> join(Reference<? super T, U> reference, Column<V, ?> ... columns) {
       joins.add(new Join<U>(null));
       return this;
     }
@@ -341,4 +341,6 @@ public interface Query<T extends Model> {
   <V> Prepared<T> set(Parameter<V> parameter, V value);
 
   Prepared<T> prepare();
+
+  String toString();
 }
