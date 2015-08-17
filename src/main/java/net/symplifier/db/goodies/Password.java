@@ -1,6 +1,5 @@
 package net.symplifier.db.goodies;
 
-import com.google.common.base.Utf8;
 import net.symplifier.db.Model;
 
 import java.nio.charset.Charset;
