@@ -27,6 +27,13 @@ public interface Driver {
   Object getField(Class valueType);
 
   /**
+   * Runs a DDL to create the model structure in the database
+   *
+   * @param structure The structure of the model
+   */
+  void createModel(ModelStructure structure);
+
+  /**
    * Create a query object from the query builder
    *
    * @param builder The builder used for creating the query
