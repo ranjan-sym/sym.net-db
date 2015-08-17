@@ -42,7 +42,7 @@ public class ModelStructure<T extends Model> {
           .build();
 
   /* The list of all the columns of this model, mapped by name of the column */
-  private final Column<T, ?> columns[];
+  private final List<Column<T, ?>> columns;
 
   /* The list of all the references of this model */
   /* This list is not being used at the moment, and may be useful only in case
@@ -100,7 +100,7 @@ public class ModelStructure<T extends Model> {
     }
 
     Set<Reference> references = new LinkedHashSet<>();
-    Set<Column<T, ?>> columns = new LinkedHashSet<>();
+    columns = new ArrayList<>();
 
     // Get stock of all the columns that belong to the model
     for (Field f : modelClass.getDeclaredFields()) {
@@ -124,7 +124,6 @@ public class ModelStructure<T extends Model> {
       }
     }
 
-    this.columns = columns.toArray(new Column<T, ?>[columns.size()]);
     this.references = references.toArray(new Reference[references.size()]);
 
 
@@ -133,7 +132,7 @@ public class ModelStructure<T extends Model> {
     if (!isModelInterface) {
       // Set level on all implementations for this model structure
       for(int i=0; i<implementations.length; ++i) {
-        Column implColumns[] = implementations[i].columns;
+        List<Column> implColumns = implementations[i].columns;
         for(Column col:implColumns) {
           col.implementationLevel.put(this, parents.length + 1 + i);
         }
@@ -141,6 +140,10 @@ public class ModelStructure<T extends Model> {
     }
 
 
+  }
+
+  public Class<T> getType() {
+    return modelClass;
   }
 
   public ModelStructure[] getParents() {
@@ -185,11 +188,11 @@ public class ModelStructure<T extends Model> {
   }
 
   public int getColumnCount() {
-    return columns.length;
+    return columns.size();
   }
 
   public Column<T, ?> getColumn(int index) {
-    return columns[index];
+    return columns.get(index);
   }
 
 }
