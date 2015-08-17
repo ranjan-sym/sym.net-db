@@ -214,6 +214,10 @@ public abstract class Column<M extends Model, T> implements ModelComponent<M>, Q
     return op(Query.FilterOp.isNotNull);
   }
 
+  public boolean canBeNull() {
+    return false;
+  }
+
 
   public static class Primary<M extends Model> extends Column<M, Long> {
 
@@ -313,7 +317,7 @@ public abstract class Column<M extends Model, T> implements ModelComponent<M>, Q
     }
   }
 
-  public static class Custom<M extends Model, G, T extends CustomType> extends Column<M, G> {
+  public static abstract class Custom<M extends Model, G, T extends CustomType> extends Column<M, G> {
 
     private final Class<T> customType;
 
@@ -329,6 +333,10 @@ public abstract class Column<M extends Model, T> implements ModelComponent<M>, Q
     public Class<T> getCustomType() {
       return customType;
     }
+
+    public abstract T getFromGeneric(G value);
+
+    public abstract G getGeneric(T value);
   }
 
   /**

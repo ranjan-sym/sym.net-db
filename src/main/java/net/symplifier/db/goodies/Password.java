@@ -20,6 +20,17 @@ public class Password extends net.symplifier.db.Column.CustomType<byte[]> {
     public Column() {
       super(Password.class, byte[].class);
     }
+
+    @Override
+    public Password getFromGeneric(byte[] value) {
+      return new Password(value);
+    }
+
+    @Override
+    public byte[] getGeneric(Password value) {
+      return value.getGeneric();
+    }
+
   }
 
   public Password(byte[] src) {
