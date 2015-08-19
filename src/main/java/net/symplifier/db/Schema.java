@@ -1,6 +1,7 @@
 package net.symplifier.db;
 
 import net.symplifier.db.annotations.Table;
+import net.symplifier.db.exceptions.DatabaseException;
 
 import java.util.*;
 
@@ -10,24 +11,57 @@ import java.util.*;
  * Created by ranjan on 7/27/15.
  */
 public class Schema {
-  private static Schema primarySchema = null;
+
+  public interface Generator {
+
+    Driver buildDriver();
+
+    void initialize(Schema schema);
+  }
+
+  private static final Schema primarySchema = new Schema();
 
   /** The complete list of all the models registered on this schema */
-  private final Map<Class<? extends Model>, ModelStructure<? extends Model>> allModels = new HashMap<>();
+  private final Map<Class<? extends Model>, ModelStructure<? extends Model>> allModels = new LinkedHashMap<>();
 
   /** A mapping of the models by the name to its corresponding class */
   private final Map<String, Class<? extends Model>> namedModels = new HashMap<>();
 
   /** The driver to be used by this schema */
-  private final Driver driver;
+  private Driver driver;
 
-  public Schema(Driver driver) {
-    assert (driver != null);
-    this.driver = driver;
-    if (primarySchema == null) {
-      primarySchema = this;
-    }
+  private Schema() {
+
   }
+
+  public static Schema generate(Generator generator) {
+    return generate(generator, true);
+  }
+
+  public static Schema generate(Generator generator, boolean primary) {
+    Schema schema;
+    if (primary) {
+      schema = primarySchema;
+    } else {
+      schema = new Schema();
+    }
+
+    if (schema.driver == null) {
+      schema.driver = generator.buildDriver();
+      generator.initialize(schema);
+    } else {
+      throw new DatabaseException("Trying to initialize already initialized schmea", null);
+    }
+
+    return schema;
+  }
+
+  public void create() {
+    Collection<ModelStructure<? extends Model>> models = allModels.values();
+
+    models.forEach(driver::createModel);
+  }
+
 
   @SuppressWarnings("unchecked")
   public <T extends Model> T get(Class<T> modelClass) {
@@ -99,7 +133,7 @@ public class Schema {
     return new Query.Builder<>(this.getModelStructure(modelClass), columns);
   }
 
-  public <T extends Model> T create(Class<T> modelClass) {
+  public <T extends Model> T createModel(Class<T> modelClass) {
     ModelStructure<T> s = this.getModelStructure(modelClass);
     return s.create();
   }
