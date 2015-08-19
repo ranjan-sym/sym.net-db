@@ -99,6 +99,10 @@ public class Schema {
     return new Query.Builder<>(this.getModelStructure(modelClass), columns);
   }
 
+  public <T extends Model> T create(Class<T> modelClass) {
+    ModelStructure<T> s = this.getModelStructure(modelClass);
+    return s.create();
+  }
 //
 //  private final ThreadLocal<Session> session = new ThreadLocal<Session>() {
 //    @Override
