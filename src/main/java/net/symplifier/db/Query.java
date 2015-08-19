@@ -285,20 +285,46 @@ public interface Query<T extends Model> {
   }
 
   class Join<T extends Model> {
-    private final Reference<?, T> reference;
+    private final ModelStructure<T> model;
+    private final Reference<?, ? super T> reference;
     private final Filter<T> filter;
     private final List<Join> joins = new ArrayList<>();
-    private final Set<Column<T, ?>> fields;
+    private final Set<Column<? super T, ?>> fields;
 
-    public Join(Reference<?, T> reference, Column<T, ?> ... columns) {
-      this(reference, null, columns);
+    /**
+     * Creates a join based on a reference column
+     *
+     * @param reference The reference column of the model to use for join
+     * @param columns The fields of the joining model that needs to be retrieved
+     */
+    public Join(Reference<?, T> reference, Column<? super T, ?> ... columns) {
+      this(reference.getTargetType(), reference, null, columns);
     }
 
-    public Join(Reference<?, T> reference, Filter<T> filter, Column<T, ?> ... columns) {
+    /**
+     * Creates a join based on a reference column and includes record filter
+     * criteria. The filter criteria is not used while joining the models
+     * but rather during the record filtering. In other word in SQL the filter
+     * is not used in 'ON' but 'WHERE' clause
+     *
+     * @param reference The reference column of the model to use fo join
+     * @param filter The filter criteria for filtering records
+     * @param columns
+     */
+
+    public Join(Reference<?, T> reference, Filter<T> filter, Column<? super T, ?> ... columns) {
+      this(reference.getTargetType(), reference, filter, columns);
+    }
+
+    public Join(ModelStructure<T> model, Reference<?, ? super T> reference, Column<? super T, ?> ... columns) {
+      this(model, reference, null, columns);
+    }
+
+    public Join(ModelStructure<T> model, Reference<?, ? super T> reference, Filter<T> filter, Column<? super T, ?> ... columns) {
+      this.model = model;
       this.reference = reference;
       this.filter = filter;
-
-      if (columns.length == 0) {
+      if(columns.length == 0) {
         fields = null;
       } else {
         fields = new HashSet<>();
@@ -308,7 +334,18 @@ public interface Query<T extends Model> {
       }
     }
 
-    public Reference<?, T> getReference() {
+    /**
+     * Retrieve the model which needs to be joined. In a general case, the model
+     * that needs to be joined is the same as given by its Reference Target, but
+     * in case of a hierarchical join where a Child model is joined through a
+     * parent model's
+     * @return
+     */
+    public ModelStructure<T> getModel() {
+      return model;
+    }
+
+    public Reference<?, ? super T> getReference() {
       return reference;
     }
 
@@ -320,7 +357,7 @@ public interface Query<T extends Model> {
       return filter;
     }
 
-    public <U extends Model> Join<T> join(Reference<T, U> reference) {
+    public <U extends Model> Join<T> join(Reference<? super T, U> reference) {
       return join(new Join<U>(reference));
     }
 

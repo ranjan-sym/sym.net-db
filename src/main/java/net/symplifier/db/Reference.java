@@ -84,6 +84,10 @@ public interface Reference<M extends Model, T extends Model> extends ModelCompon
     return new Query.Join<>(this, filter);
   }
 
+  default <U extends T> Query.Join<U> as(Class<U> parentClass) {
+    return new Query.Join<U>(getSourceType().getSchema().getModelStructure(parentClass), this);
+  }
+
   /**
    * Join another model through a referenced model
    *
@@ -91,7 +95,7 @@ public interface Reference<M extends Model, T extends Model> extends ModelCompon
    * @param <U> The type of the another model being joined
    * @return A {@link net.symplifier.db.Query.Join} object for chaining
    */
-  default <U extends Model> Query.Join<T> join(Reference<T, U> reference) {
+  default <U extends Model> Query.Join<T> join(Reference<? super T, U> reference) {
     Query.Join<T> j = new Query.Join<>(this);
     return j.join(reference);
   }
