@@ -57,6 +57,9 @@ public class ModelStructure<T extends Model> {
   /* Flag to see if this structure represents a ModelInterface */
   private final boolean isModelInterface;
 
+  /* The total number of tables that make up this model including parents and implementations */
+  private final int effectiveTablesCount;
+
   /**
    * Create new model structure
    * @param schema The schema instance
@@ -139,7 +142,7 @@ public class ModelStructure<T extends Model> {
       }
     }
 
-
+    this.effectiveTablesCount = 1 + parents.length + implementations.length;
   }
 
   public Class<T> getType() {
@@ -195,4 +198,7 @@ public class ModelStructure<T extends Model> {
     return columns.get(index);
   }
 
+  public int getEffectiveTablesCount() {
+    return effectiveTablesCount;
+  }
 }
