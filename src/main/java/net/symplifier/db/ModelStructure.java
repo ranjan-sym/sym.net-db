@@ -7,7 +7,6 @@ import net.symplifier.db.annotations.Table;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -66,6 +65,7 @@ public class ModelStructure<T extends Model> {
    * @param modelClass The type of the model
    * @param factory The factory object for creating ModelInstance
    */
+  @SuppressWarnings("unchecked")
   public ModelStructure(Schema schema, Class<T> modelClass, Model.Factory<T> factory) {
     this.schema = schema;
     this.modelClass = modelClass;
@@ -175,12 +175,7 @@ public class ModelStructure<T extends Model> {
 
   public ModelRow<T> getRow(long id) {
     try {
-      return rowCache.get(id, new Callable<ModelRow<T>>() {
-        @Override
-        public ModelRow<T> call() throws Exception {
-          return new ModelRow<>(ModelStructure.this);
-        }
-      });
+      return rowCache.get(id, () -> new ModelRow<>(ModelStructure.this));
     } catch (ExecutionException e) {
       return null;
     }
