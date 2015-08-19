@@ -181,6 +181,22 @@ public interface Query<T extends Model> {
 
     private Limit limit;
 
+    /**
+     * Constructor for use within Model implementation classes to define
+     * ready to use Query builder at all locations.
+     *
+     * <p>Example Declaration:
+     * </p><p>
+     * <code>public static final Query.Builder&lt;ExampleModel&gt; Query=new Query.Builder&lt;&gt;<>(ExampleModel.class);</code>
+     * </p>
+     *
+     *
+     * @param model The model for which the query needs to be built
+     */
+    public Builder(Class<T> model) {
+      this(Schema.get().getModelStructure(model));
+    }
+
     public Builder(ModelStructure<T> modelStructure, Column<T, ?> ... columns) {
       this.primaryModel = modelStructure;
       if (columns.length == 0) {
