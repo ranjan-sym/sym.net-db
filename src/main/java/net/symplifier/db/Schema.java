@@ -56,6 +56,9 @@ public class Schema {
     return schema;
   }
 
+  /**
+   * Creates all the model into the database system
+   */
   public void create() {
     Collection<ModelStructure<? extends Model>> models = allModels.values();
 
@@ -64,14 +67,13 @@ public class Schema {
 
 
   @SuppressWarnings("unchecked")
-  public <T extends Model> T get(Class<T> modelClass) {
-    return (T)allModels.get(modelClass).create();
+  public static <T extends Model> T get(Class<T> modelClass) {
+    return primarySchema.createModel(modelClass);
   }
 
   @SuppressWarnings("unchecked")
-  public <T extends Model> T get(Class<T> clazz, final long id) {
-    final ModelStructure<T> impl = (ModelStructure<T>) allModels.get(clazz);
-    return impl.get(id);
+  public static <T extends Model> T get(Class<T> clazz, long id) {
+    return primarySchema.find(clazz, id);
   }
 
   public Driver getDriver() {
@@ -130,13 +132,23 @@ public class Schema {
   }
 
   public <T extends Model> Query.Builder<T> query(Class<T> modelClass, Column<T, ?> ... columns) {
-    return new Query.Builder<>(this.getModelStructure(modelClass), columns);
+    return query(this.getModelStructure(modelClass), columns);
+  }
+
+  public <T extends Model> Query.Builder<T> query(ModelStructure<T> modelStructure, Column<T, ?> ... columns) {
+    return new Query.Builder<>(modelStructure, columns);
   }
 
   public <T extends Model> T createModel(Class<T> modelClass) {
-    ModelStructure<T> s = this.getModelStructure(modelClass);
+    ModelStructure<T> s = (ModelStructure<T>)allModels.get(modelClass);
     return s.create();
   }
+
+  public <T extends Model> T find(Class<T> modelClass, long id) {
+    ModelStructure<T> s = (ModelStructure<T>)allModels.get(modelClass);
+    return s.get(id);
+  }
+
 //
 //  private final ThreadLocal<Session> session = new ThreadLocal<Session>() {
 //    @Override
