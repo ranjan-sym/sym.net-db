@@ -120,7 +120,7 @@ public abstract class JDBCDriver implements Driver, Session.Listener {
         builder.append(" NOT NULL");
       }
     }
-    builder.append("\r\n)");
+    builder.append("\r\n);");
 
     String sql = builder.toString();
     System.out.println(sql);
