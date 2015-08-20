@@ -117,7 +117,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
       }
     }
 
-    columnNames.append(" FROM ");
+    columnNames.append("\r\n\tFROM ");
     columnNames.append(sqlBuffer);
 
     sql = columnNames.toString();
@@ -229,7 +229,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
   }
 
   private void makeJoin(StringBuilder sqlBuffer, String joinType, String joinTable, String parentAlias, String parentField, String childAlias, String childField) {
-    sqlBuffer.append(' ');
+    sqlBuffer.append("\r\n\t");
     sqlBuffer.append(joinType);
     sqlBuffer.append(" JOIN ");
     sqlBuffer.append(joinTable);
