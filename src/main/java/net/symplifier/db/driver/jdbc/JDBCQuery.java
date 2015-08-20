@@ -105,7 +105,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
       ModelStructure model = a.getModel();
       for(int i=0; i<model.getColumnCount(); ++i) {
         if (c>0) {
-          columnNames.append(',');
+          columnNames.append(", ");
         }
         columnNames.append(a.toString());
         columnNames.append('.');
@@ -186,42 +186,72 @@ public class JDBCQuery<M extends Model> implements Query<M> {
 
   @SuppressWarnings("unchecked")
   private void buildFilter(StringBuilder sqlBuffer) {
-    for(Alias alias:aliases) {
+    boolean prefixed = false;
+    boolean appended = false;
+    for (Alias alias : aliases) {
       Filter filter = alias.getFilter();
 
       if (filter == null) {
         continue;
       }
 
-      List<FilterEntity> entities = filter.getEntities();
-      for(FilterEntity entity:entities) {
-        if (entity instanceof FilterOp) {
-          sqlBuffer.append(filterOperations.get(entity));
-        } else if (entity instanceof Column) {
-          sqlBuffer.append(formatFieldName(((Column)entity).getFieldName()));
-        } else if (entity instanceof Parameter) {
-          sqlBuffer.append('?');
-          //JDBCParameter.Factory factory = (JDBCParameter.Factory)((Parameter) entity).getColumn().getParameterFactory();
-          parameters.add((Parameter)entity);
-          //parameters.put((Parameter) entity, factory.createModel(parameters.size(), (Parameter) entity));
-        } else if (entity instanceof ParameterList) {
-          //JDBCParameter.Factory factory = (JDBCParameter.Factory)((ParameterList) entity).getColumn().getParameterFactory();
-          ParameterList list = (ParameterList)entity;
-          sqlBuffer.append('(');
-          for(int i=0; i<list.getParameters().size(); ++i) {
-            Parameter p = (Parameter)list.getParameters().get(i);
-            if (i > 0) {
-              sqlBuffer.append(',');
-            }
-            sqlBuffer.append('?');
-            parameters.add(p);
-            //parameters.put(p, factory.createModel(parameters.size(), p));
-          }
-        }
+      if (appended) {
+        sqlBuffer.append("\r\n\t\tAND ");
       }
 
+      if (!prefixed && filter.getOperationCount() > 0) {
+        sqlBuffer.append("\r\n\tWHERE ");
+        prefixed = true;
+      }
 
+      int checkLen = sqlBuffer.length();
+      generateFilterQuery(sqlBuffer, alias, filter);
+      appended = sqlBuffer.length() > checkLen;
     }
+  }
+
+  private void generateFilterQuery(StringBuilder sqlBuffer, Alias alias, Filter filter) {
+    List<FilterEntity> entities = filter.getEntities();
+    for(FilterEntity entity:entities) {
+      if (entity instanceof FilterOp) {
+        sqlBuffer.append(filterOperations.get(entity));
+      } else if (entity instanceof Column) {
+        sqlBuffer.append(alias.toString());
+        sqlBuffer.append('.');
+        sqlBuffer.append(formatFieldName(((Column) entity).getFieldName()));
+      } else if (entity instanceof Parameter) {
+        sqlBuffer.append('?');
+        //JDBCParameter.Factory factory = (JDBCParameter.Factory)((Parameter) entity).getColumn().getParameterFactory();
+        parameters.add((Parameter) entity);
+        //parameters.put((Parameter) entity, factory.createModel(parameters.size(), (Parameter) entity));
+      } else if (entity instanceof ParameterList) {
+        //JDBCParameter.Factory factory = (JDBCParameter.Factory)((ParameterList) entity).getColumn().getParameterFactory();
+        ParameterList list = (ParameterList) entity;
+        sqlBuffer.append('(');
+        for (int i = 0; i < list.getParameters().size(); ++i) {
+          Parameter p = (Parameter) list.getParameters().get(i);
+          if (i > 0) {
+            sqlBuffer.append(',');
+          }
+          sqlBuffer.append('?');
+          parameters.add(p);
+          //parameters.put(p, factory.createModel(parameters.size(), p));
+        }
+      } else if (entity instanceof Filter) {
+        Filter f = (Filter) entity;
+        int opCount = f.getOperationCount();
+        if (opCount > 1) {
+          sqlBuffer.append('(');
+          generateFilterQuery(sqlBuffer, alias, f);
+          sqlBuffer.append(')');
+        } else {
+          generateFilterQuery(sqlBuffer, alias, f);
+        }
+      }
+    }
+
+
+
   }
 
   protected String formatFieldName(String name) {
@@ -229,7 +259,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
   }
 
   private void makeJoin(StringBuilder sqlBuffer, String joinType, String joinTable, String parentAlias, String parentField, String childAlias, String childField) {
-    sqlBuffer.append("\r\n\t");
+    sqlBuffer.append("\r\n\t\t");
     sqlBuffer.append(joinType);
     sqlBuffer.append(" JOIN ");
     sqlBuffer.append(joinTable);
