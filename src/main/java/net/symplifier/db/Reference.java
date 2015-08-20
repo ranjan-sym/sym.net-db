@@ -11,7 +11,7 @@ package net.symplifier.db;
  * @param <M> The source model
  * @param <T> The target model
  */
-public interface Reference<M extends Model, T extends Model> extends ModelComponent<M>{
+public interface Reference<M extends Model, T extends Model> {
 
   /**
    * Retrieve the information of the Source Model
