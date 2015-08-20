@@ -104,7 +104,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
     for(Alias a:aliases) {
       ModelStructure model = a.getModel();
       for(int i=0; i<model.getColumnCount(); ++i) {
-        if (i>0) {
+        if (c>0) {
           columnNames.append(',');
         }
         columnNames.append(a.toString());
