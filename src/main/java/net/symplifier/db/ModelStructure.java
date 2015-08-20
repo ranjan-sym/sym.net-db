@@ -157,16 +157,6 @@ public class ModelStructure<T extends Model> {
           if (Reference.class.isAssignableFrom(f.getType())) {
             references.add((Reference)f.get(modelClass));
           }
-
-          // Let's see if we have any intermediate tables that need to be initialized
-          if (Relation.HasMany.class.isAssignableFrom(f.getType())) {
-            Relation.HasMany m = (Relation.HasMany) f.get(modelClass);
-            String tbl = m.getIntermediateTable();
-            if (tbl != null) {
-              // need to register intermediate model as well
-              schema.registerIntermediateModel(tbl, m.getSourceType().getType(), m.getTargetType().getType());
-            }
-          }
         }
       } catch (IllegalAccessException e) {
         // TODO Warning log
