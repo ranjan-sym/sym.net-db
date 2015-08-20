@@ -231,7 +231,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
   private void makeJoin(StringBuilder sqlBuffer, String joinType, String joinTable, String parentAlias, String parentField, String childAlias, String childField) {
     sqlBuffer.append(' ');
     sqlBuffer.append(joinType);
-    sqlBuffer.append(' ');
+    sqlBuffer.append(" JOIN ");
     sqlBuffer.append(joinTable);
     sqlBuffer.append(" AS ");
     sqlBuffer.append(childAlias);
