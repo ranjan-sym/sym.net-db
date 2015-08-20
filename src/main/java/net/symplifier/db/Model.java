@@ -5,6 +5,7 @@ import net.symplifier.db.exceptions.ModelException;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.List;
 
 /**
  * The interface that represents the model of the Database System.
@@ -52,12 +53,35 @@ public interface Model {
     return get(column, column.getLevel());
   }
 
+  /**
+   * Retrieve a value for the custom column type
+   *
+   * @param column The column of which the value needs to be retrieved
+   * @param <G> The generic type of the value
+   * @param <T> The custom type of the column
+   * @return The custom type value
+   */
   default <G, T extends Column.CustomType<G>> T get(Column.Custom<?, G, T> column) {
     return column.getFromGeneric(get(column, column.getLevel()));
   }
 
   /**
-   * Set the value of the given column of this model.
+   * Retrieve a referenced type model
+   *
+   * @param column The reference column of which the value needs to be retrieved
+   * @param <U> The type of the parent model that holds this reference
+   * @param <V> The type of the model that is referred by this reference
+   * @return The model record as per the reference
+   */
+  default <U extends Model, V extends Model> V get(Column.Reference<U, V> column) {
+    long id = get((Column<U, Long>)column);
+    return column.getTargetType().get(id);
+  }
+
+  /**
+   * Set the value of the given column of this model. When a value
+   * is set for a model, a new copy is created, leaving the existing
+   * copy as it is.
    *
    * @param column The column of which the value needs to be set for this model
    * @param level The depth of the model in the hierarchy of the concrete
@@ -87,6 +111,15 @@ public interface Model {
     set(column, column.getLevel(), value);
   }
 
+  /**
+   * Get the primary key id of this record
+   *
+   * @return The primary key value
+   */
+  Long getId();
+
+
+  void save();
 
   //TODO implement the following events through interceptor and not here
   default void onValidateSelect() {
