@@ -65,7 +65,7 @@ public interface Query<T extends Model> {
       Collections.addAll(parameters, values);
     }
 
-    public ParameterList setColumn(Column<?, V> column) {
+    public ParameterList init(Column<?, V> column) {
       assert(this.column == null);
       this.column = column;
       return this;
@@ -197,9 +197,13 @@ public interface Query<T extends Model> {
       this(Schema.get().getModelStructure(model));
     }
 
-    public Builder(ModelStructure<T> modelStructure, Column<T, ?> ... columns) {
+    public Builder(ModelStructure<T> modelStructure) {
+      this(modelStructure, null);
+    }
+
+    public Builder(ModelStructure<T> modelStructure, Column<T, ?>[] columns) {
       this.primaryModel = modelStructure;
-      if (columns.length == 0) {
+      if (columns==null || columns.length == 0) {
         fields = null;
       } else {
         fields = new HashSet<>();
@@ -354,8 +358,9 @@ public interface Query<T extends Model> {
      * Retrieve the model which needs to be joined. In a general case, the model
      * that needs to be joined is the same as given by its Reference Target, but
      * in case of a hierarchical join where a Child model is joined through a
-     * parent model's
-     * @return
+     * parent model's reference, it points to the child model
+     *
+     * @return The model structure
      */
     public ModelStructure<T> getModel() {
       return model;
@@ -369,7 +374,7 @@ public interface Query<T extends Model> {
       return joins;
     }
 
-    public Filter<T> getFilter() {
+    public Filter<T> filter() {
       return filter;
     }
 
