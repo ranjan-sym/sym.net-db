@@ -33,6 +33,7 @@ public abstract class JDBCDriver implements Driver, Session.Listener {
 
   private static final Map<Class, JDBCParameter> PARAMETER_SETTERS = new HashMap<Class, JDBCParameter>() {{
     put(Integer.class, new JDBCParameter.Int());
+    put(Long.class, new JDBCParameter.Long());
     put(String.class, new JDBCParameter.Str());
     put(Float.class, new JDBCParameter.Float());
     put(Double.class, new JDBCParameter.Double());
@@ -43,6 +44,7 @@ public abstract class JDBCDriver implements Driver, Session.Listener {
 
   private static final Map<Class, JDBCField> FIELDS = new HashMap<Class, JDBCField>() {{
     put(Integer.class, new JDBCField.Int());
+    put(Long.class, new JDBCField.Long());
     put(String.class, new JDBCField.Str());
     put(Float.class, new JDBCField.Float());
     put(Double.class, new JDBCField.Double());
