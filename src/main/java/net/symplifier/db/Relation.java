@@ -7,17 +7,20 @@ package net.symplifier.db;
  */
 public interface Relation {
 
-  class BelongsTo<M extends Model, T extends Model> extends Column.Reference<M, T> {
+  //void onInitRelation(ModelStructure<M> owner);
 
-    public BelongsTo(Class<T> referenceType) {
-      super(referenceType);
-    }
 
-    public BelongsTo(Class<T> referenceType, Builder builder) {
-      super(referenceType, builder);
-    }
-
-  }
+//  class BelongsTo<M extends Model, T extends Model> extends Column.Reference<M, T> {
+//
+//    public BelongsTo(Class<T> referenceType) {
+//      super(referenceType);
+//    }
+//
+//    public BelongsTo(Class<T> referenceType, Builder builder) {
+//      super(referenceType, builder);
+//    }
+//
+//  }
 
 //  class HasOne<M extends Model, T extends Model> implements Reference<M, T> {
 //    private ModelStructure<M> sourceModel;
@@ -103,22 +106,30 @@ public interface Relation {
       this.sourceFieldName = sourceFieldName;
     }
 
-    public void onInit(ModelStructure<M> model) {
+    @Override
+    public void onInitReference(ModelStructure<M> model) {
       this.sourceModel = model;
       this.targetModel = model.getSchema().registerModel(targetType);
-
-      if (sourceFieldName == null) {
-        this.sourceFieldName = model.getPrimaryKeyField();
-      }
-      if (targetFieldName == null) {
-        targetFieldName = model.getTableName() + "_id";
-      }
 
       if (intermediateTableName != null) {
         intermediateTable = model.getSchema()
                 .registerIntermediateModel(intermediateTableName,
                         this.sourceModel.getType(),
                         this.targetModel.getType());
+
+        if (sourceFieldName == null) {
+          this.sourceFieldName = sourceModel.getTableName() + "_id";
+        }
+        if (targetFieldName == null) {
+          targetFieldName = targetModel.getTableName() + "_id";
+        }
+      } else {
+        if (sourceFieldName == null) {
+          this.sourceFieldName = model.getPrimaryKeyField();
+        }
+        if (targetFieldName == null) {
+          targetFieldName = model.getTableName() + "_id";
+        }
       }
     }
 
