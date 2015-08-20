@@ -19,60 +19,67 @@ public interface Relation {
 
   }
 
-  class HasOne<M extends Model, T extends Model> implements Reference<M, T> {
-    private ModelStructure<M> sourceModel;
-    private ModelStructure<T> targetModel;
-
-    private final Class<T> targetType;
-    private String targetFieldName;
-
-    public HasOne(Class<T> targetType) {
-      this(targetType, null);
-    }
-    public HasOne(Class<T> targetType, String targetFieldName) {
-      this.targetType = targetType;
-      this.targetFieldName = targetFieldName;
-    }
-
-    @Override
-    public void onInit(ModelStructure<M> owner) {
-      this.sourceModel = owner;
-
-      targetModel = owner.getSchema().registerModel(targetType);
-      if (targetFieldName == null) {
-        targetFieldName = owner.getTableName() + "_id";
-      }
-    }
-
-    @Override
-    public ModelStructure<M> getSourceType() {
-      return sourceModel;
-    }
-
-    @Override
-    public ModelStructure<T> getTargetType() {
-      return targetModel;
-    }
-
-    @Override
-    public String getSourceFieldName() {
-      return sourceModel.getPrimaryKeyField();
-    }
-
-    @Override
-    public String getTargetFieldName() {
-      return targetFieldName;
-    }
-
-
-  }
+//  class HasOne<M extends Model, T extends Model> implements Reference<M, T> {
+//    private ModelStructure<M> sourceModel;
+//    private ModelStructure<T> targetModel;
+//
+//    private final Class<T> targetType;
+//    private String targetFieldName;
+//
+//    public HasOne(Class<T> targetType) {
+//      this(targetType, null);
+//    }
+//    public HasOne(Class<T> targetType, String targetFieldName) {
+//      this.targetType = targetType;
+//      this.targetFieldName = targetFieldName;
+//    }
+//
+//    public void onInit(ModelStructure<M> owner) {
+//      this.sourceModel = owner;
+//
+//      targetModel = owner.getSchema().registerModel(targetType);
+//      if (targetFieldName == null) {
+//        targetFieldName = owner.getTableName() + "_id";
+//      }
+//    }
+//
+//    @Override
+//    public ModelStructure<M> getSourceType() {
+//      return sourceModel;
+//    }
+//
+//    @Override
+//    public ModelStructure<T> getTargetType() {
+//      return targetModel;
+//    }
+//
+//    @Override
+//    public String getSourceFieldName() {
+//      return sourceModel.getPrimaryKeyField();
+//    }
+//
+//    @Override
+//    public String getTargetFieldName() {
+//      return targetFieldName;
+//    }
+//
+//
+//  }
 
   class HasMany<M extends Model, T extends Model> implements Reference<M, T> {
     private ModelStructure<M> sourceModel;
     private ModelStructure<T> targetModel;
 
     private final Class<T> targetType;
-    private final ModelStructure<? extends Model> intermediateTable;
+
+    /*
+       The intermediate table is a special table which will not have a corresponding
+       model in the ORM. The intermediate table consists of only two columns both
+       as a composite primary key. If the relationship consists of some fields,
+       then it won't be a many-to-many relationship any more, but just a one to
+       many and many to one relationship to another model in between
+     */
+    private final String intermediateTable;
     private String sourceFieldName;
     private String targetFieldName;
 
@@ -84,7 +91,7 @@ public interface Relation {
       this(targetModel, reference.getTargetFieldName(), null, null);
     }
 
-    public HasMany(Class<T> targetModel, String targetFieldName, ModelStructure<? extends Model> intermediateTable, String sourceFieldName) {
+    public HasMany(Class<T> targetModel, String targetFieldName, String intermediateTable, String sourceFieldName) {
       this.targetType  = targetModel;
       this.targetFieldName = targetFieldName;
       this.intermediateTable = intermediateTable;
@@ -110,7 +117,7 @@ public interface Relation {
     }
 
     @Override
-    public ModelStructure<? extends Model> getIntermediateTable() {
+    public String getIntermediateTable() {
       return intermediateTable;
     }
 

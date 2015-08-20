@@ -13,7 +13,7 @@ import java.util.Map;
  * @param <M> The type of the Model
  * @param <T> The type of the field
  */
-public abstract class Column<M extends Model, T> implements ModelComponent<M>, Query.FilterEntity {
+public abstract class Column<M extends Model, T> implements Query.FilterEntity {
 
   private final Class<T> valueType;
 
@@ -52,7 +52,6 @@ public abstract class Column<M extends Model, T> implements ModelComponent<M>, Q
 
   }
 
-  @Override
   public void onInit(ModelStructure<M> structure) {
     this.model = structure;
     this.index = structure.getColumnCount();
@@ -148,7 +147,7 @@ public abstract class Column<M extends Model, T> implements ModelComponent<M>, Q
 
   @SafeVarargs
   public final Query.Filter<M> in(T ... values) {
-    return op(Query.FilterOp.in, new Query.ParameterList<T>(values).setColumn(this));
+    return op(Query.FilterOp.in, new Query.ParameterList<T>(values).init(this));
   }
 
   public Query.Filter<M> notEq(T value) {
@@ -196,7 +195,7 @@ public abstract class Column<M extends Model, T> implements ModelComponent<M>, Q
 
   @SafeVarargs
   public final Query.Filter<M> in(Query.Parameter<T> ... values) {
-    return op(Query.FilterOp.in, new Query.ParameterList<T>(values).setColumn(this));
+    return op(Query.FilterOp.in, new Query.ParameterList<T>(values).init(this));
   }
 
   public Query.Filter<M> like(Query.Parameter<T> value) {
@@ -294,6 +293,53 @@ public abstract class Column<M extends Model, T> implements ModelComponent<M>, Q
     @Override
     public java.lang.String getTargetFieldName() {
       return referenceModel.getPrimaryKeyField();
+    }
+  }
+
+  /**
+   * A very special type of reference used for back-referencing one to many
+   * relationship in the many to many relationship. This one is used in the
+   * intermediate table join condition during the data retrieval in HasMany
+   * relationship (used in ModelInstance only at the moment)
+   * @param <T> The Intermediate model
+   * @param <M> The source model
+   */
+  public static class BackReference<T extends Model, M extends Model>
+          extends Column<T, Long> implements net.symplifier.db.Reference<M, T> {
+
+    private final Class<M> sourceType;
+    private ModelStructure<T> targetModel;
+    private ModelStructure<M> sourceModel;
+    public BackReference(Class<M> sourceType) {
+      super(Long.class);
+      this.sourceType = sourceType;
+    }
+
+    public void onInit(ModelStructure<T> structure) {
+      super.onInit(structure);
+
+      this.targetModel = structure;
+      this.sourceModel = structure.getSchema().getModelStructure(sourceType);
+    }
+
+    @Override
+    public ModelStructure<M> getSourceType() {
+      return sourceModel;
+    }
+
+    @Override
+    public ModelStructure<T> getTargetType() {
+      return targetModel;
+    }
+
+    @Override
+    public String getSourceFieldName() {
+      return sourceModel.getPrimaryKeyField();
+    }
+
+    @Override
+    public String getTargetFieldName() {
+      return getFieldName();
     }
   }
 

@@ -32,7 +32,7 @@ public class ModelStructure<T extends Model> {
   /* The name of the table on the database for this model */
   private final String tableName;
 
-  /* The factory object used to create the ModelInstance */
+  /* The factory object used to createModel the ModelInstance */
   private final Model.Factory<T> modelFactory;
 
   /* The cache of data that belongs to this model */
@@ -42,6 +42,7 @@ public class ModelStructure<T extends Model> {
 
   /* The list of all the columns of this model, mapped by name of the column */
   private final List<Column<T, ?>> columns;
+  private final Map<String, Integer> columnIndex = new HashMap<>();
 
   /* The list of all the references of this model */
   /* This list is not being used at the moment, and may be useful only in case
@@ -58,6 +59,39 @@ public class ModelStructure<T extends Model> {
 
   /* The total number of tables that make up this model including parents and implementations */
   private final int effectiveTablesCount;
+
+  /**
+   * Special model structure creation for Intermediate models
+   *
+   * @param schema
+   * @param modelClass
+   * @param table
+   * @param modelU
+   * @param modelV
+   * @param <U>
+   * @param <V>
+   */
+  public <U extends Model, V extends Model> ModelStructure(Schema schema, Class<T> modelClass, String table, Class<U> modelU, Class<V> modelV) {
+    assert(modelClass == ModelIntermediate.class);
+
+    this.schema = schema;
+    this.modelClass = modelClass;
+    this.modelFactory = null;
+    this.isModelInterface = false;
+
+    tableName = table;
+
+    parents = new ModelStructure[0];
+    implementations = new ModelStructure[0];
+
+    columns = new ArrayList<>(2);
+    columns.add(new Column.BackReference<T, U>(modelU));
+    columns.add(new Column.BackReference<T, V>(modelV));
+
+    // References yes
+    references = null;
+    effectiveTablesCount = 1;
+  }
 
   /**
    * Create new model structure
@@ -115,11 +149,23 @@ public class ModelStructure<T extends Model> {
             col.setName(f.getName());
             col.onInit(this);
 
+            columnIndex.put(col.getFieldName(), columns.size());
             columns.add(col);
+
           }
 
           if (Reference.class.isAssignableFrom(f.getType())) {
             references.add((Reference)f.get(modelClass));
+          }
+
+          // Let's see if we have any intermediate tables that need to be initialized
+          if (Relation.HasMany.class.isAssignableFrom(f.getType())) {
+            Relation.HasMany m = (Relation.HasMany) f.get(modelClass);
+            String tbl = m.getIntermediateTable();
+            if (tbl != null) {
+              // need to register intermediate model as well
+              schema.registerIntermediateModel(tbl, m.getSourceType().getType(), m.getTargetType().getType());
+            }
           }
         }
       } catch (IllegalAccessException e) {
@@ -193,7 +239,15 @@ public class ModelStructure<T extends Model> {
     return columns.get(index);
   }
 
+  public Column<T, ?> getColumn(String fieldName) {
+    return columns.get(columnIndex.get(fieldName));
+  }
+
   public int getEffectiveTablesCount() {
     return effectiveTablesCount;
+  }
+
+  public Query.Builder<T> query() {
+    return getSchema().query(this);
   }
 }
