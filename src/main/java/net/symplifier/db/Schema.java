@@ -12,6 +12,8 @@ import java.util.*;
  */
 public class Schema {
 
+
+
   public interface Generator {
 
     Driver buildDriver();
@@ -23,6 +25,7 @@ public class Schema {
 
   /** The complete list of all the models registered on this schema */
   private final Map<Class<? extends Model>, ModelStructure<? extends Model>> allModels = new LinkedHashMap<>();
+  private final Map<String, ModelStructure<ModelIntermediate>> intermediateModels = new LinkedHashMap<>();
 
   /** A mapping of the models by the name to its corresponding class */
   private final Map<String, Class<? extends Model>> namedModels = new HashMap<>();
@@ -122,6 +125,19 @@ public class Schema {
     return impl;
   }
 
+  public ModelStructure<ModelIntermediate> getIntermediateModel(String tbl) {
+    return intermediateModels.get(tbl);
+  }
+
+  public <U extends Model, V extends Model> ModelStructure<ModelIntermediate> registerIntermediateModel(String tbl, Class<U> modelU, Class<V> modelV) {
+    ModelStructure<ModelIntermediate> m = intermediateModels.get(tbl);
+    if (m == null) {
+      m = new ModelStructure<ModelIntermediate>(this, ModelIntermediate.class, tbl, modelU, modelV);
+    }
+
+    return m;
+  }
+
   /**
    * Get the primary schema
    *
@@ -133,6 +149,10 @@ public class Schema {
 
   public <T extends Model> Query.Builder<T> query(Class<T> modelClass, Column<T, ?> ... columns) {
     return query(this.getModelStructure(modelClass), columns);
+  }
+
+  public <T extends Model> Query.Builder<T> query(ModelStructure<T> modelStructure) {
+    return new Query.Builder<>(modelStructure);
   }
 
   public <T extends Model> Query.Builder<T> query(ModelStructure<T> modelStructure, Column<T, ?> ... columns) {
