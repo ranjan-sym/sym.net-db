@@ -299,9 +299,7 @@ public interface Query<T extends Model> {
     }
 
     public <U extends Model> Builder<T> join(Join<U> join, Column<U, ?> ... columns) {
-      for(Column<U, ?> col:columns) {
-        join.fields.add(col);
-      }
+      Collections.addAll(join.fields, columns);
       joins.add(join);
       return this;
     }
