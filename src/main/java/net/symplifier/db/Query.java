@@ -232,19 +232,19 @@ public interface Query<T extends Model> {
 
 
     public Builder<T> where(Filter<T> filter) {
-      filter.append(filter);
+      this.filter.append(filter);
       return this;
     }
 
     public Builder<T> and(Filter<T> filter) {
-      filter.append(FilterOp.and);
-      filter.append(filter);
+      this.filter.append(FilterOp.and);
+      this.filter.append(filter);
       return this;
     }
 
     public Builder<T> or(Filter<T> filter) {
-      filter.append(FilterOp.or);
-      filter.append(filter);
+      this.filter.append(FilterOp.or);
+      this.filter.append(filter);
       return this;
     }
 
