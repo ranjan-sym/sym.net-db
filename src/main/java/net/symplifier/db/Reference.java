@@ -54,7 +54,7 @@ public interface Reference<M extends Model, T extends Model> {
    *
    * @return The structure of intermediate {@link ModelStructure} model
    */
-  default ModelStructure<? extends Model> getIntermediateTable() {
+  default ModelStructure<ModelIntermediate> getIntermediateTable() {
     return null;
   }
 
