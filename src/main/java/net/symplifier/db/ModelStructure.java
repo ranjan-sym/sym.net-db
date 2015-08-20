@@ -48,7 +48,7 @@ public class ModelStructure<T extends Model> {
   /* This list is not being used at the moment, and may be useful only in case
      we decide to use automatically loaded (default) references
    */
-  private final Reference[] references;
+  private final LinkedHashSet<Reference> references;
 
   /* The hierarchy of the model. */
   private final ModelStructure[] parents;
@@ -85,8 +85,16 @@ public class ModelStructure<T extends Model> {
     implementations = new ModelStructure[0];
 
     columns = new ArrayList<>(2);
-    columns.add(new Column.BackReference<T, U>(modelU));
-    columns.add(new Column.BackReference<T, V>(modelV));
+    Column.BackReference<T, U> u = new Column.BackReference<>(modelU);
+    Column.BackReference<T, V> v = new Column.BackReference<>(modelV);
+    columns.add(u);
+    columns.add(v);
+
+    u.setName(schema.getModelStructure(modelU).tableName);
+    v.setName(schema.getModelStructure(modelV).tableName);
+
+    u.onInit(this);
+    v.onInit(this);
 
     // References yes
     references = null;
@@ -135,17 +143,29 @@ public class ModelStructure<T extends Model> {
     for (ModelStructure p : parents) {
       Collections.addAll(impls, p.implementations);
     }
+    implementations = impls.toArray(new ModelStructure[impls.size()]);
 
-    Set<Reference> references = new LinkedHashSet<>();
+    references = new LinkedHashSet<>();
     columns = new ArrayList<>();
 
+    this.effectiveTablesCount = 1 + parents.length + implementations.length;
+  }
+
+  /**
+   * The entire schema building is a two stage process, in the first stage, all
+   * the models and their columns are built and on the second stage, the
+   * relationships are generated. We cannot do this in a single stage as there
+   * will be lot of circular dependencies leading to Stack Over flow if we try
+   * to do it in one stage.
+   */
+  void buildRelationship() {
     // Get stock of all the columns that belong to the model
     for (Field f : modelClass.getDeclaredFields()) {
       int modifier = f.getModifiers();
       try {
         if (Modifier.isStatic(modifier) && Modifier.isFinal(modifier)) {
           if (Column.class.isAssignableFrom(f.getType())) {
-            Column col = (Column) f.get(modelClass);
+            Column col = (Column) f.get(null);
             col.setName(f.getName());
             col.onInit(this);
 
@@ -155,7 +175,7 @@ public class ModelStructure<T extends Model> {
           }
 
           if (Reference.class.isAssignableFrom(f.getType())) {
-            references.add((Reference)f.get(modelClass));
+            references.add((Reference)f.get(null));
           }
         }
       } catch (IllegalAccessException e) {
@@ -163,11 +183,7 @@ public class ModelStructure<T extends Model> {
       }
     }
 
-    this.references = references.toArray(new Reference[references.size()]);
 
-
-
-    implementations = impls.toArray(new ModelStructure[impls.size()]);
     if (!isModelInterface) {
       // Set level on all implementations for this model structure
       for(int i=0; i<implementations.length; ++i) {
@@ -177,8 +193,9 @@ public class ModelStructure<T extends Model> {
         }
       }
     }
-
-    this.effectiveTablesCount = 1 + parents.length + implementations.length;
+    for(Reference reference:this.references) {
+      reference.onInitReference(this);
+    }
   }
 
   public Class<T> getType() {
