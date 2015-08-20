@@ -293,12 +293,15 @@ public interface Query<T extends Model> {
 //      return this;
 //    }
 
-    public <U extends Model, V extends U> Builder<T> join(Reference<? super T, U> reference, Column<V, ?> ... columns) {
-      joins.add(new Join<U>(null));
+    public <U extends Model> Builder<T> join(Reference<? super T, U> reference, Column<U, ?> ... columns) {
+      joins.add(new Join<>(reference, columns));
       return this;
     }
 
-    public <U extends Model, V extends U> Builder<T> join(Join<U> join, Column<V, ?> ... columns) {
+    public <U extends Model> Builder<T> join(Join<U> join, Column<U, ?> ... columns) {
+      for(Column<U, ?> col:columns) {
+        join.fields.add(col);
+      }
       joins.add(join);
       return this;
     }
