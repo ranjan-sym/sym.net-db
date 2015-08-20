@@ -71,6 +71,7 @@ public interface Relation {
     private ModelStructure<T> targetModel;
 
     private final Class<T> targetType;
+    private final String intermediateTableName;
 
     /*
        The intermediate table is a special table which will not have a corresponding
@@ -79,7 +80,7 @@ public interface Relation {
        then it won't be a many-to-many relationship any more, but just a one to
        many and many to one relationship to another model in between
      */
-    private final String intermediateTable;
+    private ModelStructure<ModelIntermediate> intermediateTable;
     private String sourceFieldName;
     private String targetFieldName;
 
@@ -91,18 +92,33 @@ public interface Relation {
       this(targetModel, reference.getTargetFieldName(), null, null);
     }
 
+    public HasMany(Class<T> targetModel, String intermediateTable) {
+      this(targetModel, null, intermediateTable, null);
+    }
+
     public HasMany(Class<T> targetModel, String targetFieldName, String intermediateTable, String sourceFieldName) {
       this.targetType  = targetModel;
       this.targetFieldName = targetFieldName;
-      this.intermediateTable = intermediateTable;
-      this.sourceFieldName = sourceFieldName == null ? sourceModel.getPrimaryKeyField() : sourceFieldName;
+      this.intermediateTableName = intermediateTable;
+      this.sourceFieldName = sourceFieldName;
     }
 
     public void onInit(ModelStructure<M> model) {
       this.sourceModel = model;
       this.targetModel = model.getSchema().registerModel(targetType);
+
+      if (sourceFieldName == null) {
+        this.sourceFieldName = model.getPrimaryKeyField();
+      }
       if (targetFieldName == null) {
         targetFieldName = model.getTableName() + "_id";
+      }
+
+      if (intermediateTableName != null) {
+        intermediateTable = model.getSchema()
+                .registerIntermediateModel(intermediateTableName,
+                        this.sourceModel.getType(),
+                        this.targetModel.getType());
       }
     }
 
@@ -117,7 +133,7 @@ public interface Relation {
     }
 
     @Override
-    public String getIntermediateTable() {
+    public ModelStructure<ModelIntermediate> getIntermediateTable() {
       return intermediateTable;
     }
 
