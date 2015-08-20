@@ -28,6 +28,17 @@ public interface JDBCParameter<V> {
     }
   }
 
+  class Long implements JDBCParameter<java.lang.Long> {
+
+    @Override
+    public void set(PreparedStatement statement, int index, java.lang.Long value) throws SQLException {
+      if (value == null) {
+        statement.setNull(index, Types.BIGINT);
+      } else {
+        statement.setLong(index, value);
+      }
+    }
+  }
   class Float implements JDBCParameter<java.lang.Float> {
 
     @Override
