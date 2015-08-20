@@ -102,7 +102,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
     // get the list of the columns that we need to fetch
     int c = 0;
     for(Alias a:aliases) {
-      ModelStructure model = alias.getModel();
+      ModelStructure model = a.getModel();
       for(int i=0; i<model.getColumnCount(); ++i) {
         if (i>0) {
           columnNames.append(',');
@@ -188,6 +188,10 @@ public class JDBCQuery<M extends Model> implements Query<M> {
   private void buildFilter(StringBuilder sqlBuffer) {
     for(Alias alias:aliases) {
       Filter filter = alias.getFilter();
+
+      if (filter == null) {
+        continue;
+      }
 
       List<FilterEntity> entities = filter.getEntities();
       for(FilterEntity entity:entities) {
