@@ -178,7 +178,7 @@ public class ModelInstance<M extends ModelInstance> implements Model {
    */
   public <U extends M, V extends Model> List<V> filter(Relation.HasMany<U, V> relation, Query.Filter<V> filter) {
     // append the relational filter criteria by default
-    String intermediate = relation.getIntermediateTable();
+    ModelStructure<ModelIntermediate> intermediate = relation.getIntermediateTable();
 
     //
     Column<V, Long> pCol = (Column<V, Long>)relation.getTargetType().getColumn(relation.getTargetFieldName());
@@ -189,9 +189,9 @@ public class ModelInstance<M extends ModelInstance> implements Model {
       builder.where(filter).and(pCol.eq(this.getId()));
     } else {
 
-      ModelStructure<ModelIntermediate> im = this.getStructure().getSchema().getIntermediateModel(intermediate);
-      Column.BackReference<ModelIntermediate,?> backRef = (Column.BackReference)im.getColumn(relation.getTargetFieldName());
-      Column f = im.getColumn(relation.getSourceFieldName());
+      Column.BackReference<ModelIntermediate,?> backRef
+              = (Column.BackReference)intermediate.getColumn(relation.getTargetFieldName());
+      Column f = intermediate.getColumn(relation.getSourceFieldName());
 
       Query.Join<ModelIntermediate> intermediateJoin = new Query.Join<>(backRef);
       intermediateJoin.filter().and(f.eq(this.getId()));
