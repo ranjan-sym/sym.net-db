@@ -199,7 +199,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
           sqlBuffer.append('?');
           //JDBCParameter.Factory factory = (JDBCParameter.Factory)((Parameter) entity).getColumn().getParameterFactory();
           parameters.add((Parameter)entity);
-          //parameters.put((Parameter) entity, factory.create(parameters.size(), (Parameter) entity));
+          //parameters.put((Parameter) entity, factory.createModel(parameters.size(), (Parameter) entity));
         } else if (entity instanceof ParameterList) {
           //JDBCParameter.Factory factory = (JDBCParameter.Factory)((ParameterList) entity).getColumn().getParameterFactory();
           ParameterList list = (ParameterList)entity;
@@ -211,7 +211,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
             }
             sqlBuffer.append('?');
             parameters.add(p);
-            //parameters.put(p, factory.create(parameters.size(), p));
+            //parameters.put(p, factory.createModel(parameters.size(), p));
           }
         }
       }
@@ -224,7 +224,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
     return name;
   }
 
-  private void makeJoin(StringBuilder sqlBuffer, String joinType, String joinTable, Alias parentAlias, String parentField, Alias childAlias, String childField) {
+  private void makeJoin(StringBuilder sqlBuffer, String joinType, String joinTable, String parentAlias, String parentField, String childAlias, String childField) {
     sqlBuffer.append(joinType);
     sqlBuffer.append(' ');
     sqlBuffer.append(joinTable);
@@ -247,15 +247,18 @@ public class JDBCQuery<M extends Model> implements Query<M> {
 
       Reference reference = join.getReference();
 
-      Alias joinAlias;
+      Alias joinAlias = new Alias(reference.getTargetType(), join.filter());
       // If there is an intermediate table in the join then there are actually two joins to be made
-      ModelStructure intermediate = reference.getIntermediateTable();
+      ModelStructure<ModelIntermediate> intermediate = reference.getIntermediateTable();
       if (intermediate != null) {
-        Alias alias = new Alias(intermediate, null);
-        makeJoin(sqlBuffer, "LEFT", intermediate.getTableName(), parentAlias, parent.getPrimaryKeyField(), alias, reference.getSourceFieldName());
-        makeJoin(sqlBuffer, "LEFT", reference.getTargetType().getTableName(), alias, reference.getTargetFieldName(), joinAlias = new Alias(reference.getTargetType(), join.getFilter()), reference.getTargetType().getPrimaryKeyField());
+        //Alias alias = new Alias(intermediate, null);
+        String alias = "I" + (++aliasNumber);
+        makeJoin(sqlBuffer, "LEFT", intermediate.getTableName(), parentAlias.toString(), parent.getPrimaryKeyField(), alias, reference.getSourceFieldName());
+        //joinAlias = new Alias(reference.getTargetType(), join.filter());
+        makeJoin(sqlBuffer, "LEFT", reference.getTargetType().getTableName(), alias, reference.getTargetFieldName(), joinAlias.toString(), reference.getTargetType().getPrimaryKeyField());
       } else {
-        makeJoin(sqlBuffer, "LEFT", reference.getTargetType().getTableName(), parentAlias, reference.getSourceFieldName(), joinAlias = new Alias(reference.getTargetType(), join.getFilter()), reference.getTargetFieldName());
+        //joinAlias = new Alias(reference.getTargetType(), join.filter());
+        makeJoin(sqlBuffer, "LEFT", reference.getTargetType().getTableName(), parentAlias.toString(), reference.getSourceFieldName(), joinAlias.toString(), reference.getTargetFieldName());
       }
 
 
