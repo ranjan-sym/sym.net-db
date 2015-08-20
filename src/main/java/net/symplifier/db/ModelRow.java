@@ -8,9 +8,9 @@ package net.symplifier.db;
  */
 public class ModelRow<T extends Model> {
 
-  private final ModelStructure<T> owner;
+  private final ModelStructure owner;
 
-  private Long id;
+  // The first data on this array should be primary key
   private final Object[] rowData;
 
   // Keep track of the fields that have been modified;
@@ -18,14 +18,12 @@ public class ModelRow<T extends Model> {
 
   ModelRow(ModelStructure owner) {
     this.owner = owner;
-    this.id = null;
     this.rowData = new Object[owner.getColumnCount()];
     this.modificationBits = 0;
   }
 
   ModelRow(ModelRow ref) {
     this.owner = ref.owner;
-    this.id = ref.id;
     this.rowData = new Object[ref.rowData.length];
     System.arraycopy(ref.rowData, 0, this.rowData, 0, rowData.length);
     this.modificationBits = 0;
@@ -35,13 +33,16 @@ public class ModelRow<T extends Model> {
     return new ModelRow(this);
   }
 
-
   public Long getId() {
-    return id;
+    return (Long)rowData[0];
   }
 
   public boolean isModified() {
-    return id==null || modificationBits != 0;
+    return getId()==null || modificationBits != 0;
+  }
+
+  public void clearFlag() {
+    this.modificationBits = 0;
   }
 
   public Object get(int index) {
@@ -54,7 +55,9 @@ public class ModelRow<T extends Model> {
 
   public void set(int index, Object obj, boolean makeDirty) {
     rowData[index] = obj;
-    this.modificationBits |= (1L << index);
+    if (makeDirty) {
+      this.modificationBits |= (1L << index);
+    }
   }
 
 }
