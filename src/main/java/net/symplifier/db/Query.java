@@ -1,5 +1,7 @@
 package net.symplifier.db;
 
+import net.symplifier.core.application.Session;
+
 import java.util.*;
 
 /**
@@ -123,6 +125,26 @@ public interface Query<T extends Model> {
       entities.add(entity);
     }
 
+    /**
+     * Counter th number of operations available in the filter. This value is
+     * used while generating query to decide if a filter condition needs to
+     * be enclosed within parenthesis or not
+     *
+     * @return The number of {@link net.symplifier.db.Query.FilterOp} that has
+     *         been used in the filter
+     */
+    public int getOperationCount() {
+      int count = 0;
+      for(FilterEntity e:entities) {
+        if (e instanceof FilterOp) {
+          count += 1;
+        } else if (e instanceof Filter) {
+          count += ((Filter) e).getOperationCount();
+        }
+      }
+
+      return count;
+    }
   }
 
   enum FilterOp implements FilterEntity {
@@ -155,6 +177,14 @@ public interface Query<T extends Model> {
       this.column = column;
       this.isDescending = isDescending;
     }
+
+    public Column<T, ?> getColumn() {
+      return column;
+    }
+
+    public boolean isDescending() {
+      return isDescending;
+    }
   }
 
 
@@ -170,12 +200,20 @@ public interface Query<T extends Model> {
       this.limit = limit;
       this.offset = offset;
     }
+
+    public Parameter<Integer> getLimit() {
+      return limit;
+    }
+
+    public Parameter<Integer> getOffset() {
+      return offset;
+    }
   }
 
   class Builder<T extends Model> {
     private final ModelStructure<T> primaryModel;
     private final Filter<T> filter = new Filter<T>();
-    private final Map<Column<T, ?>, Order<T>> orderBy = new LinkedHashMap<>();
+    private final Set<Order<T>> orderBy = new LinkedHashSet<>();
     private final List<Join> joins = new ArrayList<>();
     private final Set<Column<T, ?>> fields;
 
@@ -225,6 +263,12 @@ public interface Query<T extends Model> {
       return filter;
     }
 
+    public Set<Order<T>> getOrderBy() { return orderBy; }
+
+    public Limit getLimit() {
+      return limit;
+    }
+
     public Query<T> build() {
       return primaryModel.getSchema().createQuery(this);
     }
@@ -250,14 +294,14 @@ public interface Query<T extends Model> {
 
     public Builder<T> asc(Column<T, ?> ... columns) {
       for(Column<T, ?> col:columns) {
-        this.orderBy.put(col, new Order<T>(col, false));
+        this.orderBy.add(new Order<T>(col, false));
       }
       return this;
     }
 
     public Builder<T> desc(Column<T, ?> ... columns) {
       for(Column<T, ?> col:columns) {
-        this.orderBy.put(col, new Order<T>(col, true));
+        this.orderBy.add(new Order<T>(col, true));
       }
       return this;
     }
@@ -310,7 +354,8 @@ public interface Query<T extends Model> {
     private final Reference<?, ? super T> reference;
     private final Filter<T> filter;
     private final List<Join> joins = new ArrayList<>();
-    private final Set<Column<? super T, ?>> fields;
+    private final Set<Column<T, ?>> fields;
+    private final Set<Order<T>> orderBy;
 
     /**
      * Creates a join based on a reference column
@@ -318,7 +363,7 @@ public interface Query<T extends Model> {
      * @param reference The reference column of the model to use for join
      * @param columns The fields of the joining model that needs to be retrieved
      */
-    public Join(Reference<?, T> reference, Column<? super T, ?> ... columns) {
+    public Join(Reference<?, T> reference, Column<T, ?> ... columns) {
       this(reference.getTargetType(), reference, null, columns);
     }
 
@@ -333,18 +378,20 @@ public interface Query<T extends Model> {
      * @param columns
      */
 
-    public Join(Reference<?, T> reference, Filter<T> filter, Column<? super T, ?> ... columns) {
+    public Join(Reference<?, T> reference, Filter<T> filter, Column<T, ?> ... columns) {
       this(reference.getTargetType(), reference, filter, columns);
     }
 
-    public Join(ModelStructure<T> model, Reference<?, ? super T> reference, Column<? super T, ?> ... columns) {
+    public Join(ModelStructure<T> model, Reference<?, ? super T> reference, Column<T, ?> ... columns) {
       this(model, reference, null, columns);
     }
 
-    public Join(ModelStructure<T> model, Reference<?, ? super T> reference, Filter<T> filter, Column<? super T, ?> ... columns) {
+    public Join(ModelStructure<T> model, Reference<?, ? super T> reference, Filter<T> filter, Column<T, ?> ... columns) {
       this.model = model;
       this.reference = reference;
       this.filter = filter;
+      this.orderBy = new LinkedHashSet<>();
+
       if(columns.length == 0) {
         fields = null;
       } else {
@@ -354,6 +401,22 @@ public interface Query<T extends Model> {
         }
       }
     }
+
+    public void asc(Column<T, ?> ... columns) {
+      orderBy(columns, false);
+    }
+
+    public void desc(Column<T, ?> ... columns) {
+      orderBy(columns, true);
+    }
+
+    private void orderBy(Column<T, ?>[] columns, boolean desc) {
+      for(Column<T, ?> column: columns) {
+        this.orderBy.add(new Order<>(column, desc));
+      }
+    }
+
+
 
     /**
      * Retrieve the model which needs to be joined. In a general case, the model
@@ -373,6 +436,11 @@ public interface Query<T extends Model> {
 
     public List<Join> getJoinChildren() {
       return joins;
+    }
+
+
+    public Set<Order<T>> getOrderBy() {
+      return orderBy;
     }
 
     public Filter<T> filter() {
@@ -395,11 +463,21 @@ public interface Query<T extends Model> {
    *
    * @return {@link Result} for retrieving data
    */
-  Result<T> execute();
+  Result<T> execute(DBSession session);
+
+  default Result<T> execute() {
+    DBSession session = Session.get(Schema.get(), DBSession.class);
+    return execute(session);
+  }
 
   <V> Prepared<T> set(Parameter<V> parameter, V value);
 
-  Prepared<T> prepare();
+  default Prepared<T> prepare() {
+    DBSession session = Session.get(Schema.get(), DBSession.class);
+    return prepare(session);
+  }
+
+  Prepared<T> prepare(DBSession session);
 
   String toString();
 }
