@@ -171,11 +171,13 @@ public class Schema {
     return new Query.Builder<>(modelStructure, columns);
   }
 
+  @SuppressWarnings("unchecked")
   public <T extends Model> T createModel(Class<T> modelClass) {
     ModelStructure<T> s = (ModelStructure<T>)allModels.get(modelClass);
     return s.create();
   }
 
+  @SuppressWarnings("unchecked")
   public <T extends Model> T find(Class<T> modelClass, long id) {
     ModelStructure<T> s = (ModelStructure<T>)allModels.get(modelClass);
     return s.get(id);
