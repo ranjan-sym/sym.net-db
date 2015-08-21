@@ -102,7 +102,7 @@ public class JDBCSession implements DBSession {
 
 
     String sql = insertSql.toString();
-
+    System.out.println(sql);
     try {
       PreparedStatement statement = connection.prepareStatement(sql);
       for (int i = 0; i < parameters.size(); ++i) {
