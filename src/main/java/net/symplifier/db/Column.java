@@ -17,7 +17,7 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
 
   private final Class<T> valueType;
 
-  private final Cache<T, ModelRow<M>> cache;
+  private final Cache<T, ModelRow> cache;
 
   /* The model to which this column belongs */
   private ModelStructure<M> model;
@@ -52,6 +52,24 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
 
   }
 
+  /**
+   * Method used for generating default field name based on their name, this
+   * method is available for overriding since we could have different types of
+   * column that may have a different mechanism of generating default field
+   * name.
+   *
+   * <p>
+   *   Note however that this method is invoked only if a manual field name
+   *   has not been provided
+   * </p>
+   *
+   * @return The default field name to be used for this column
+   */
+  protected String generateFieldName() {
+    return Schema.toDBName(name);
+  }
+
+
   public void onInit(ModelStructure<M> structure) {
     this.model = structure;
     this.index = structure.getColumnCount();
@@ -60,7 +78,7 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
     this.field = structure.getSchema().getDriver().getField(this.valueType);
 
     if (fieldName == null) {
-      fieldName = Schema.toDBName(this.name);
+      fieldName = generateFieldName();
     }
   }
 
@@ -270,9 +288,20 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
       this.referenceType = referenceType;
     }
 
+    @Override
+    public void onInitReference(ModelStructure<M> owner) {
+
+    }
+
+    @Override
     public void onInit(ModelStructure<M> structure) {
       super.onInit(structure);
       referenceModel = structure.getSchema().registerModel(referenceType);
+    }
+
+    @Override
+    protected String generateFieldName() {
+      return super.generateFieldName() + "_id";
     }
 
     @Override
@@ -313,6 +342,16 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
     public BackReference(Class<M> sourceType) {
       super(Long.class);
       this.sourceType = sourceType;
+    }
+
+    @Override
+    public void onInitReference(ModelStructure<M> owner) {
+
+    }
+
+    @Override
+    protected String generateFieldName() {
+      return super.generateFieldName() + "_id";
     }
 
     public void onInit(ModelStructure<T> structure) {
