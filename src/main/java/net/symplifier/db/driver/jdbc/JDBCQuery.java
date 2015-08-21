@@ -14,25 +14,31 @@ import java.util.*;
  */
 public class JDBCQuery<M extends Model> implements Query<M> {
 
-  private class Alias {
-    private final ModelStructure model;
-    private final Filter filter;
+  private class Alias<T extends Model> {
+    private final ModelStructure<T> model;
+    private final Filter<T> filter;
     private final String name;
+    private final Set<Order<T>> orders;
 
-    public Alias(ModelStructure model, Filter filter) {
+    public Alias(ModelStructure<T> model, Filter<T> filter, Set<Order<T>> orders) {
       this.model = model;
       this.filter = filter;
       this.name = "A" + (++aliasNumber);
+      this.orders = orders;
 
       aliases.add(this);
     }
 
-    public ModelStructure getModel() {
+    public ModelStructure<T> getModel() {
       return model;
     }
 
-    public Filter getFilter() {
+    public Filter<T> getFilter() {
       return filter;
+    }
+
+    public Set<Order<T>> getOrders() {
+      return orders;
     }
 
     public String toString() {
@@ -55,6 +61,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
     this.put(FilterOp.like, " LIKE ");
   }};
 
+  private final JDBCDriver driver;
   private final ModelStructure<M> primaryModel;
   private final List<Alias> aliases = new ArrayList<>();
   private final List<Parameter> parameters = new ArrayList<>();
@@ -66,12 +73,27 @@ public class JDBCQuery<M extends Model> implements Query<M> {
 
   private int aliasNumber = 0;
 
-  public JDBCQuery(Query.Builder<M> builder) {
+  public JDBCQuery(JDBCDriver driver, Query.Builder<M> builder) {
+    this.driver = driver;
     this.primaryModel = builder.getPrimaryModel();
     StringBuilder sqlBuffer = new StringBuilder();
 
-    Alias alias = new Alias(primaryModel, builder.getFilter());
-    sqlBuffer.append(builder.getPrimaryModel().getTableName());
+    Set<Order<M>> orders = builder.getOrderBy();
+    Alias alias = new Alias(primaryModel, builder.getFilter(), orders);
+
+    Query.Limit limit = builder.getLimit();
+    // Limit is tricky, when used with JOIN
+    sqlBuffer.append("\r\n  FROM ");
+    if (builder.getJoins().size() > 0 && limit != null) {
+      // We have joins, the limit has to be treated a bit specially
+      sqlBuffer.append("(SELECT * FROM ");
+      sqlBuffer.append(builder.getPrimaryModel().getTableName());
+      buildLimit(sqlBuffer, parameters, limit, true);
+      sqlBuffer.append(')');
+      limit = null;
+    } else {
+      sqlBuffer.append(builder.getPrimaryModel().getTableName());
+    }
     sqlBuffer.append(" AS ");
     sqlBuffer.append(alias);
 
@@ -86,7 +108,15 @@ public class JDBCQuery<M extends Model> implements Query<M> {
     buildJoins(sqlBuffer, alias, builder.getPrimaryModel(), builder.getJoins());
 
     // Now prepare the filter
-    buildFilter(sqlBuffer);
+    buildFilter(sqlBuffer, parameters);
+
+    // Next up is the order by
+    builderOrderBy(sqlBuffer);
+
+    // if we still have a limit to process, we need to process it here now
+    if (limit != null) {
+      buildLimit(sqlBuffer, parameters, limit, false);
+    }
 
     StringBuilder columnNames = new StringBuilder();
     columnNames.append("SELECT ");
@@ -106,6 +136,9 @@ public class JDBCQuery<M extends Model> implements Query<M> {
       for(int i=0; i<model.getColumnCount(); ++i) {
         if (c>0) {
           columnNames.append(", ");
+          if (i == 0) {   // Just making the URL pretty
+            columnNames.append("\r\n       ");
+          }
         }
         columnNames.append(a.toString());
         columnNames.append('.');
@@ -117,7 +150,6 @@ public class JDBCQuery<M extends Model> implements Query<M> {
       }
     }
 
-    columnNames.append("\r\n\tFROM ");
     columnNames.append(sqlBuffer);
 
     sql = columnNames.toString();
@@ -169,23 +201,22 @@ public class JDBCQuery<M extends Model> implements Query<M> {
     }
   }
 
-  @Override
-  public Result<M> execute() {
-    return Session.get(JDBCSession.class).prepare(this).execute();
+  public Result<M> execute(DBSession session) {
+    return prepare(session).execute();
   }
 
   @Override
-  public <V> Prepared set(Parameter<V> parameter, V value) {
+  public <V> Query.Prepared<M> set(Parameter<V> parameter, V value) {
     return prepare().set(parameter, value);
   }
 
   @Override
-  public Prepared prepare() {
-    return Session.get(JDBCSession.class).prepare(this);
+  public Query.Prepared<M> prepare(DBSession session) {
+    return session.prepare(this);
   }
 
   @SuppressWarnings("unchecked")
-  private void buildFilter(StringBuilder sqlBuffer) {
+  protected void buildFilter(StringBuilder sqlBuffer, List<Parameter> parameters) {
     boolean prefixed = false;
     boolean appended = false;
     for (Alias alias : aliases) {
@@ -196,21 +227,22 @@ public class JDBCQuery<M extends Model> implements Query<M> {
       }
 
       if (appended) {
-        sqlBuffer.append("\r\n\t\tAND ");
+        sqlBuffer.append("\r\n    AND ");
       }
 
       if (!prefixed && filter.getOperationCount() > 0) {
-        sqlBuffer.append("\r\n\tWHERE ");
+        sqlBuffer.append("\r\n  WHERE ");
         prefixed = true;
       }
 
       int checkLen = sqlBuffer.length();
-      generateFilterQuery(sqlBuffer, alias, filter);
+      generateFilterQuery(sqlBuffer, parameters, alias, filter);
       appended = sqlBuffer.length() > checkLen;
     }
   }
 
-  private void generateFilterQuery(StringBuilder sqlBuffer, Alias alias, Filter filter) {
+  @SuppressWarnings("unchecked")
+  protected void generateFilterQuery(StringBuilder sqlBuffer, List<Parameter> parameters, Alias alias, Filter filter) {
     List<FilterEntity> entities = filter.getEntities();
     for(FilterEntity entity:entities) {
       if (entity instanceof FilterOp) {
@@ -218,7 +250,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
       } else if (entity instanceof Column) {
         sqlBuffer.append(alias.toString());
         sqlBuffer.append('.');
-        sqlBuffer.append(formatFieldName(((Column) entity).getFieldName()));
+        sqlBuffer.append(driver.formatFieldName(((Column) entity).getFieldName()));
       } else if (entity instanceof Parameter) {
         sqlBuffer.append('?');
         //JDBCParameter.Factory factory = (JDBCParameter.Factory)((Parameter) entity).getColumn().getParameterFactory();
@@ -242,24 +274,74 @@ public class JDBCQuery<M extends Model> implements Query<M> {
         int opCount = f.getOperationCount();
         if (opCount > 1) {
           sqlBuffer.append('(');
-          generateFilterQuery(sqlBuffer, alias, f);
+          generateFilterQuery(sqlBuffer, parameters, alias, f);
           sqlBuffer.append(')');
         } else {
-          generateFilterQuery(sqlBuffer, alias, f);
+          generateFilterQuery(sqlBuffer, parameters, alias, f);
         }
       }
     }
-
-
-
   }
 
-  protected String formatFieldName(String name) {
-    return name;
+  protected void builderOrderBy(StringBuilder sqlBuffer) {
+    sqlBuffer.append("\r\n\tORDER BY ");
+    boolean first = true;
+    for(Alias alias:aliases) {
+      if (!first) {
+        sqlBuffer.append(",\r\n           ");
+        first = true;
+      }
+      Set<Order<?>> orders = alias.getOrders();
+      if (orders.size() == 0) {
+        // If no order by has been defined, then the primary key is taken
+        // as the default ordering
+        sqlBuffer.append(alias.toString());
+        sqlBuffer.append('.');
+        sqlBuffer.append(alias.getModel().getPrimaryKeyField());
+        first = false;
+      } else {
+        for(Order order:orders) {
+          if (!first) {
+            sqlBuffer.append(", ");
+          } else {
+            first = false;
+          }
+          Column col = order.getColumn();
+          sqlBuffer.append(alias.toString());
+          sqlBuffer.append('.');
+          sqlBuffer.append(col.getFieldName());
+
+          if (order.isDescending()) {
+            sqlBuffer.append(" DESC");
+          }
+        }
+      }
+
+    }
+  }
+
+  protected void buildLimit(StringBuilder sqlBuffer, List<Parameter> parameters, Query.Limit limit, boolean inline) {
+    assert(limit != null);
+    if (inline) {
+      sqlBuffer.append(' ');
+    } else {
+      sqlBuffer.append("\r\n\t");
+    }
+    sqlBuffer.append("LIMIT ");
+    Parameter<Integer> offset = limit.getOffset();
+    Parameter<Integer> count = limit.getLimit();
+    if (offset == null) {
+      sqlBuffer.append('?');
+      parameters.add(count);
+    } else {
+      sqlBuffer.append("?, ?");
+      parameters.add(offset);
+      parameters.add(count);
+    }
   }
 
   private void makeJoin(StringBuilder sqlBuffer, String joinType, String joinTable, String parentAlias, String parentField, String childAlias, String childField) {
-    sqlBuffer.append("\r\n\t\t");
+    sqlBuffer.append("\r\n    ");
     sqlBuffer.append(joinType);
     sqlBuffer.append(" JOIN ");
     sqlBuffer.append(joinTable);
@@ -282,7 +364,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
 
       Reference reference = join.getReference();
 
-      Alias joinAlias = new Alias(reference.getTargetType(), join.filter());
+      Alias joinAlias = new Alias(reference.getTargetType(), join.filter(), join.getOrderBy());
       // If there is an intermediate table in the join then there are actually two joins to be made
       ModelStructure<ModelIntermediate> intermediate = reference.getIntermediateTable();
       if (intermediate != null) {
