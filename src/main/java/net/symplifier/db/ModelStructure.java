@@ -36,7 +36,7 @@ public class ModelStructure<T extends Model> {
   private final Model.Factory<T> modelFactory;
 
   /* The cache of data that belongs to this model */
-  private final Cache<Long, ModelRow<T>> rowCache = CacheBuilder.newBuilder()
+  private final Cache<Long, ModelRow> rowCache = CacheBuilder.newBuilder()
           .maximumSize(1000)
           .build();
 
@@ -52,8 +52,11 @@ public class ModelStructure<T extends Model> {
 
   /* The hierarchy of the model. */
   private final ModelStructure[] parents;
-  /* The models that have been implemented by this model */
-  private final ModelStructure[] implementations;
+
+  /* The models that have been implemented by this model, Keep a map of
+   * implementation that points to the column that implemented the interface */
+  private final Map<ModelStructure, Column.Interface> implementations;
+
   /* Flag to see if this structure represents a ModelInterface */
   private final boolean isModelInterface;
 
@@ -82,7 +85,7 @@ public class ModelStructure<T extends Model> {
     tableName = table;
 
     parents = new ModelStructure[0];
-    implementations = new ModelStructure[0];
+    implementations = null;
 
     columns = new ArrayList<>(2);
     Column.BackReference<T, U> u = new Column.BackReference<>(modelU);
@@ -138,17 +141,19 @@ public class ModelStructure<T extends Model> {
       parents[i] = parentStructure;
     }
 
+    implementations = new LinkedHashMap<>();
     // Take all the implementations from the parents first
-    Set<ModelStructure> impls = new LinkedHashSet<>();
     for (ModelStructure p : parents) {
-      Collections.addAll(impls, p.implementations);
+      Set<Map.Entry<ModelStructure, Column.Interface>> entries = p.implementations.entrySet();
+      for(Map.Entry<ModelStructure, Column.Interface> entry:entries) {
+        implementations.put(entry.getKey(), entry.getValue());
+      }
     }
-    implementations = impls.toArray(new ModelStructure[impls.size()]);
 
     references = new LinkedHashSet<>();
     columns = new ArrayList<>();
 
-    this.effectiveTablesCount = 1 + parents.length + implementations.length;
+    this.effectiveTablesCount = 1 + parents.length + implementations.size();
   }
 
   /**
@@ -186,16 +191,33 @@ public class ModelStructure<T extends Model> {
 
     if (!isModelInterface) {
       // Set level on all implementations for this model structure
-      for(int i=0; i<implementations.length; ++i) {
-        List<Column> implColumns = implementations[i].columns;
+      Set<ModelStructure> allImplementations = implementations.keySet();
+      int i=0;
+      for(ModelStructure impl:allImplementations) {
+        List<Column> implColumns = impl.columns;
         for(Column col:implColumns) {
           col.implementationLevel.put(this, parents.length + 1 + i);
         }
+        i+= 1;
       }
     }
     for(Reference reference:this.references) {
       reference.onInitReference(this);
     }
+  }
+
+
+  /**
+   * Determine if this represents a structure of a ModelInterface
+   *
+   * @return {@code true} if the structure is of a ModelInterface
+   */
+  public boolean isInterface() {
+    return isModelInterface;
+  }
+
+  public Column.Interface getImplementationColumn(ModelStructure interfaceStructure) {
+    return implementations.get(interfaceStructure);
   }
 
   public Class<T> getType() {
@@ -218,17 +240,17 @@ public class ModelStructure<T extends Model> {
     return schema;
   }
 
-  public T create(ModelRow<T> row) {
+  public T create(ModelRow row) {
     return modelFactory.create(this);
   }
 
   public T create() {
-    return create(new ModelRow<>(this));
+    return create(new ModelRow(this));
   }
 
-  public ModelRow<T> getRow(long id) {
+  public ModelRow getRow(long id) {
     try {
-      return rowCache.get(id, () -> new ModelRow<>(ModelStructure.this));
+      return rowCache.get(id, () -> new ModelRow(ModelStructure.this));
     } catch (ExecutionException e) {
       return null;
     }
@@ -250,11 +272,30 @@ public class ModelStructure<T extends Model> {
     return columns.get(columnIndex.get(fieldName));
   }
 
-  public int getEffectiveTablesCount() {
+  /**
+   * Returns the number of tables that are affected by this model. This total
+   * includes the number of parent tables and the implemented tables
+   *
+   * @return The total number of tables are are affected by this model
+   */
+  public int getDependentTablesCount() {
     return effectiveTablesCount;
   }
 
   public Query.Builder<T> query() {
     return getSchema().query(this);
+  }
+
+  /**
+   * The index in the hierarchy of the parent child on which this model falls
+   *
+   * @return
+   */
+  public int getModelLevel() {
+    return parents.length;
+  }
+
+  public Collection<ModelStructure> getImplementations() {
+    return implementations.keySet();
   }
 }
