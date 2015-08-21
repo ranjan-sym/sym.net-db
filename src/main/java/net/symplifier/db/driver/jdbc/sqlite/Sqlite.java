@@ -1,5 +1,6 @@
 package net.symplifier.db.driver.jdbc.sqlite;
 
+import net.symplifier.db.Schema;
 import net.symplifier.db.driver.jdbc.JDBC;
 import net.symplifier.db.exceptions.DatabaseException;
 
@@ -24,7 +25,7 @@ public class Sqlite implements JDBC {
   }
 
   @Override
-  public SqliteDriver build() {
-    return new SqliteDriver("jdbc:sqlite:" + file, null, null);
+  public SqliteDriver build(Schema schema) {
+    return new SqliteDriver(schema, "jdbc:sqlite:" + file, null, null);
   }
 }

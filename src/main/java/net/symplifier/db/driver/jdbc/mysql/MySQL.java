@@ -1,5 +1,6 @@
 package net.symplifier.db.driver.jdbc.mysql;
 
+import net.symplifier.db.Schema;
 import net.symplifier.db.driver.jdbc.JDBC;
 import net.symplifier.db.exceptions.DatabaseException;
 
@@ -63,8 +64,8 @@ public class MySQL implements JDBC {
   }
 
   @Override
-  public MySQLDriver build() {
-    return new MySQLDriver(getUri(), username, password);
+  public MySQLDriver build(Schema schema) {
+    return new MySQLDriver(schema, getUri(), username, password);
   }
 
 

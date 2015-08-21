@@ -1,5 +1,6 @@
 package net.symplifier.db.driver.jdbc.mysql;
 
+import net.symplifier.db.Schema;
 import net.symplifier.db.driver.jdbc.JDBCDriver;
 
 /**
@@ -7,7 +8,7 @@ import net.symplifier.db.driver.jdbc.JDBCDriver;
  */
 public class MySQLDriver extends JDBCDriver {
 
-  MySQLDriver(String uri, String username, String password) {
-    super(uri, username, password);
+  MySQLDriver(Schema schema, String uri, String username, String password) {
+    super(schema, uri, username, password);
   }
 }

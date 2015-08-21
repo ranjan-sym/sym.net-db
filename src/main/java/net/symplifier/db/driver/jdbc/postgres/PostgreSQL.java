@@ -1,5 +1,6 @@
 package net.symplifier.db.driver.jdbc.postgres;
 
+import net.symplifier.db.Schema;
 import net.symplifier.db.driver.jdbc.JDBC;
 import net.symplifier.db.exceptions.DatabaseException;
 
@@ -61,7 +62,7 @@ public class PostgreSQL implements JDBC {
   }
 
   @Override
-  public PostgreSQLDriver build() {
-    return new PostgreSQLDriver(getUri(), username, password);
+  public PostgreSQLDriver build(Schema schema) {
+    return new PostgreSQLDriver(schema, getUri(), username, password);
   }
 }

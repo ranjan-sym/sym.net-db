@@ -1,5 +1,6 @@
 package net.symplifier.db.driver.jdbc.sqlite;
 
+import net.symplifier.db.Schema;
 import net.symplifier.db.driver.jdbc.JDBCDriver;
 
 /**
@@ -8,7 +9,7 @@ import net.symplifier.db.driver.jdbc.JDBCDriver;
 public class SqliteDriver extends JDBCDriver {
 
 
-  protected SqliteDriver(String uri, String username, String password) {
-    super(uri, username, password);
+  protected SqliteDriver(Schema schema, String uri, String username, String password) {
+    super(schema, uri, username, password);
   }
 }
