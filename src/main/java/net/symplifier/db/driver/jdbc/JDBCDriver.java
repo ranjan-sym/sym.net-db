@@ -21,7 +21,7 @@ import java.util.Map;
  */
 public abstract class JDBCDriver implements Driver, Session.Listener {
   private DataSource dataSource;
-
+  private final Schema schema;
   @Override
   public JDBCParameter getParameterSetter(Class type) {
     return PARAMETER_SETTERS.get(type);
@@ -54,7 +54,8 @@ public abstract class JDBCDriver implements Driver, Session.Listener {
   }};
 
 
-  protected JDBCDriver(String uri, String username, String password) {
+  protected JDBCDriver(Schema schema, String uri, String username, String password) {
+    this.schema = schema;
 
     ConnectionFactory connectionFactory = new DriverManagerConnectionFactory(uri, username, password);
 
@@ -142,7 +143,7 @@ public abstract class JDBCDriver implements Driver, Session.Listener {
   @Override
   public void onSessionBegin(Session session) {
     try {
-      session.attach(JDBCSession.class, new JDBCSession(this, dataSource.getConnection()));
+      session.attach(schema, new JDBCSession(this, dataSource.getConnection()));
     } catch(SQLException e) {
       throw new DatabaseException("Error while starting a new JDBC Session", e);
     }
@@ -151,7 +152,7 @@ public abstract class JDBCDriver implements Driver, Session.Listener {
 
   @Override
   public void onSessionEnd(Session session) {
-    JDBCSession s = session.getAttachment(JDBCSession.class);
+    JDBCSession s = session.getAttachment(schema, JDBCSession.class);
     s.close();
   }
 
