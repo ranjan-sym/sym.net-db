@@ -1,6 +1,11 @@
 package net.symplifier.db;
 
 /**
+ * The Database Session object that provides connection and is obtained via
+ * Application session using
+ * {@link net.symplifier.core.application.Session#get(Object, Class)} using
+ * {@link Schema} object as the key and DBSession.class for the Class parameter
+ *
  * Created by ranjan on 8/21/15.
  */
 public interface DBSession {
