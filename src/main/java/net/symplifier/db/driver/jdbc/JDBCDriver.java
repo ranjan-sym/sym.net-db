@@ -136,13 +136,13 @@ public abstract class JDBCDriver implements Driver, Session.Listener {
 
   @Override
   public <T extends Model> JDBCQuery<T> createQuery(Query.Builder<T> builder) {
-    return new JDBCQuery<>(builder);
+    return new JDBCQuery<>(this, builder);
   }
 
   @Override
   public void onSessionBegin(Session session) {
     try {
-      session.attach(JDBCSession.class, new JDBCSession(dataSource.getConnection()));
+      session.attach(JDBCSession.class, new JDBCSession(this, dataSource.getConnection()));
     } catch(SQLException e) {
       throw new DatabaseException("Error while starting a new JDBC Session", e);
     }
@@ -154,5 +154,18 @@ public abstract class JDBCDriver implements Driver, Session.Listener {
     JDBCSession s = session.getAttachment(JDBCSession.class);
     s.close();
   }
+
+  /**
+   * Mechanism to allow specific drivers to format the field name by enclosing
+   * them within certain characters which might be different with different
+   * database system
+   *
+   * @param name the field name to be formatted
+   * @return formatted field name
+   */
+  protected String formatFieldName(String name) {
+    return name;
+  }
+
 
 }
