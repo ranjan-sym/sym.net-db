@@ -1,6 +1,7 @@
 package net.symplifier.db;
 
 
+import net.symplifier.core.application.Session;
 import net.symplifier.db.exceptions.ModelException;
 
 import java.lang.reflect.Constructor;
@@ -73,10 +74,17 @@ public interface Model {
    * @param <V> The type of the model that is referred by this reference
    * @return The model record as per the reference
    */
-  default <U extends Model, V extends Model> V get(Column.Reference<U, V> column) {
-    long id = get((Column<U, Long>)column);
-    return column.getTargetType().get(id);
-  }
+  <U extends Model, V extends Model> V get(Column.Reference<U, V> column);
+
+  /**
+   * Set a referenced type model
+   *
+   * @param column The reference column of which the value needs to be set
+   * @param model The value that needs to be set for this reference
+   * @param <U> The type of the parent model that holds this reference
+   * @param <V> The type of the model that is referred by this reference
+   */
+  <U extends Model, V extends Model> void set(Column.Reference<U, V> column, V model);
 
   /**
    * Set the value of the given column of this model. When a value
@@ -118,8 +126,11 @@ public interface Model {
    */
   Long getId();
 
+  void save(DBSession session);
 
-  void save();
+  default void save() {
+    save(Session.get(Schema.get(), DBSession.class));
+  }
 
   //TODO implement the following events through interceptor and not here
   default void onValidateSelect() {
