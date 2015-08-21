@@ -41,4 +41,5 @@ public interface Driver {
    * @return A query object that could be used for retrieving data from the database
    */
   <T extends Model> Query<T> createQuery(Query.Builder<T> builder);
+
 }
