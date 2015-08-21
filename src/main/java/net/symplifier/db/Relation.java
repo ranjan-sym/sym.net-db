@@ -75,6 +75,7 @@ public interface Relation {
 
     private final Class<T> targetType;
     private final String intermediateTableName;
+    private final Column.Reference<T, M> backReference;
 
     /*
        The intermediate table is a special table which will not have a corresponding
@@ -87,22 +88,21 @@ public interface Relation {
     private String sourceFieldName;
     private String targetFieldName;
 
-    public HasMany(Class<T> targetModel) {
-      this(targetModel, null, null, null);
-    }
-
     public HasMany(Class<T> targetModel, Column.Reference<T, M> reference) {
-      this(targetModel, reference.getTargetFieldName(), null, null);
+      this.targetType = targetModel;
+      this.intermediateTableName = null;
+      this.backReference = reference;
     }
 
     public HasMany(Class<T> targetModel, String intermediateTable) {
-      this(targetModel, null, intermediateTable, null);
+      this(targetModel, intermediateTable, null, null);
     }
 
-    public HasMany(Class<T> targetModel, String targetFieldName, String intermediateTable, String sourceFieldName) {
+    public HasMany(Class<T> targetModel, String intermediateTable, String sourceFieldName, String targetFieldName) {
       this.targetType  = targetModel;
-      this.targetFieldName = targetFieldName;
       this.intermediateTableName = intermediateTable;
+      this.backReference = null;
+      this.targetFieldName = targetFieldName;
       this.sourceFieldName = sourceFieldName;
     }
 
@@ -146,6 +146,10 @@ public interface Relation {
     @Override
     public ModelStructure<ModelIntermediate> getIntermediateTable() {
       return intermediateTable;
+    }
+
+    public Column.Reference<T, M> getBackReference() {
+      return backReference;
     }
 
     public String getSourceFieldName() {
