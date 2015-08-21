@@ -51,7 +51,11 @@ public class Schema {
 
     if (schema.driver == null) {
       schema.driver = generator.buildDriver();
+      // First stage, register all the models and build their structure
       generator.initialize(schema);
+
+      // Second stage, build the relationship
+      schema.buildRelationship();
     } else {
       throw new DatabaseException("Trying to initialize already initialized schmea", null);
     }
@@ -59,6 +63,9 @@ public class Schema {
     return schema;
   }
 
+  private void buildRelationship() {
+    allModels.values().forEach(net.symplifier.db.ModelStructure::buildRelationship);
+  }
   /**
    * Creates all the model into the database system
    */
@@ -66,6 +73,10 @@ public class Schema {
     Collection<ModelStructure<? extends Model>> models = allModels.values();
 
     models.forEach(driver::createModel);
+
+    Collection<ModelStructure<ModelIntermediate>> intermediates = intermediateModels.values();
+    intermediates.forEach(driver::createModel);
+
   }
 
 
@@ -88,7 +99,7 @@ public class Schema {
   }
 
   @SuppressWarnings("unchecked")
-  public <T extends Model> ModelStructure<T> getModelStructure(Class<T> clazz) {
+  public <T extends Model> ModelStructure<T> getModelStructure(Class clazz) {
     return (ModelStructure<T>)allModels.get(clazz);
   }
   /**
@@ -132,7 +143,8 @@ public class Schema {
   public <U extends Model, V extends Model> ModelStructure<ModelIntermediate> registerIntermediateModel(String tbl, Class<U> modelU, Class<V> modelV) {
     ModelStructure<ModelIntermediate> m = intermediateModels.get(tbl);
     if (m == null) {
-      m = new ModelStructure<ModelIntermediate>(this, ModelIntermediate.class, tbl, modelU, modelV);
+      m = new ModelStructure<>(this, ModelIntermediate.class, tbl, modelU, modelV);
+      intermediateModels.put(tbl, m);
     }
 
     return m;
