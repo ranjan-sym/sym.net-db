@@ -16,7 +16,7 @@ public class Schema {
 
   public interface Generator {
 
-    Driver buildDriver();
+    Driver buildDriver(Schema schema);
 
     void initialize(Schema schema);
   }
@@ -50,7 +50,7 @@ public class Schema {
     }
 
     if (schema.driver == null) {
-      schema.driver = generator.buildDriver();
+      schema.driver = generator.buildDriver(schema);
       // First stage, register all the models and build their structure
       generator.initialize(schema);
 
