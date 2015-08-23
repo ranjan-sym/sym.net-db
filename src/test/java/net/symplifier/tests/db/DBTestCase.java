@@ -1,59 +1,115 @@
 package net.symplifier.tests.db;
 
-import net.symplifier.db.exceptions.DatabaseException;
+import net.symplifier.core.application.Session;
+import net.symplifier.db.Driver;
+import net.symplifier.db.Query;
 import net.symplifier.db.Schema;
+import net.symplifier.db.driver.jdbc.sqlite.Sqlite;
+import net.symplifier.db.exceptions.DatabaseException;
+import net.symplifier.tests.db.system.*;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Random;
 
 /**
  * Created by ranjan on 7/3/15.
  */
-public class DBTestCase {
+public class DBTestCase implements Schema.Generator {
   public static final SimpleDateFormat DATE_TIME_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
   public long REF_DATE_TS;
 
   public static final int GEN_COUNT = 100;
   public static final int LOG_COUNT = 10000;
 
-  private File tempFile;
-  private Schema schema;
 
   @Before
   public void createSchema() throws IOException, ParseException {
+    Schema schema = Schema.generate(this);
 
-//    Schema schema = new Schema();
-//
-//
-//
-//    app.getSchema(MySchema.class).
-//
-//
-//    schema.get(EventModel.class).code
-//
-//
-//
-//
-//    REF_DATE_TS = DATE_TIME_FORMAT.parse("2000-01-24 16:00:00").getTime();
-//    // Delete temporary files that might have been created before
-//    tempFile = File.createTempFile("java-test-", ".db");
-//    tempFile.deleteOnExit();
-//    System.out.println("Using temporary database file - " + tempFile.getAbsolutePath());
-//    Schema = new TestSystem(new JDBCDriver("jdbc:sqlite:" + tempFile.getAbsolutePath()));
-//    Schema.createAll();
+    schema.create();
   }
 
   private Random random = new Random();
 
+
+  @Override
+  public Driver buildDriver(Schema schema) {
+    Sqlite sqlite = new Sqlite("orm.test.db");
+    return sqlite.build(schema);
+  }
+
+  @Override
+  public void initialize(Schema schema) {
+    schema.registerModel(Book.class);
+    schema.registerModel(Author.class);
+    schema.registerModel(Publisher.class);
+//
+//
+//    schema.registerModel(Event.class);
+//    schema.registerModel(EventLog.class);
+//    schema.registerModel(Location.class);
+//    schema.registerModel(Generator.class);
+
+  }
+
+
+
   @Test
   public void testModelConsistency() throws DatabaseException {
 
+    Session.start(null);
+
+    Query<Book> q = Book.Q()
+              .join(Book.authors.asc(Author.name))
+              .join(Book.publisher.where(Publisher.name.gt("MS")))
+            .where(Book.isbn.like("1234").and(Book.title.eq("C++")))
+            .limit(50, 40)
+            .build();
+    System.out.println(q.toString());
+
+    Query<Publisher> pq = Publisher.Q().join(Publisher.books).limit(20).build();
+    System.out.println(pq.toString());
+
+    System.out.println(Publisher.Q().desc(Publisher.id).asc(Publisher.name).limit(5).build().toString());
+
+    Book book = new Book();
+    Publisher pub;
+    book.setTitle("Programming in JAVA");
+    book.setISBN("101101");
+    book.setPublisher(pub = new Publisher());
+    pub.setName("RTS");
+    book.save();
+
+    pub.setName("XYZ");
+    pub.save();
+
+
+
+
+    Session.end();
+
+    System.out.println();
+
+
+
+
+    //Schema.get().query(Location.class)
+    //        .join(EventLog.location)
+
+//            .join(Location.logs);
+    //Schema.get().query(Generator.class)
+    //        .join(Location.logs);
+
+
+
+
+
 //    Schema.begin();
+
 //
 //    System.out.println("Testing basic data insertion feature");
 //    HashMap<Long, Generator> source = new HashMap<>();
@@ -177,4 +233,5 @@ public class DBTestCase {
 
 
   }
+
 }

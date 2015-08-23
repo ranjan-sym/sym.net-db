@@ -14,14 +14,93 @@ import java.util.*;
  */
 public class JDBCQuery<M extends Model> implements Query<M> {
 
+  private static class QueryColumn {
+    private final Column column;
+    private final int index;
+
+    public QueryColumn(Column column, int index) {
+      this.column = column;
+      this.index = index;
+    }
+  }
+
+  public class ModelMap {
+    private final ModelStructure model;
+    private final Map<Reference, ModelMap> relations;
+    private final QueryColumn[] columns;
+
+    public ModelMap(ModelStructure model) {
+      this.model = model;
+      this.columns = new QueryColumn[model.getColumnCount()];
+      this.relations = new LinkedHashMap<>();
+    }
+
+    ModelInstance load(ResultSet rs, ModelInstance seed) throws SQLException {
+      // First read all the column
+      int idx = columns[0].index;
+      JDBCField field = fields[idx];
+      Long id = (Long)field.get(rs, idx+1);
+
+      if (seed == null) {
+        ModelRow row = model.getRow(id);
+        seed = (ModelInstance)model.create(row);
+        return recursiveLoad(rs, row, seed);
+      } else if(!id.equals(seed.getId())) {
+        return null;
+      } else {
+        return recursiveLoad(rs, seed.getPrimaryRow(), seed);
+      }
+    }
+
+    ModelInstance recursiveLoad(ResultSet rs, ModelRow row, ModelInstance seed) throws SQLException {
+
+      // Stage 1. Load rest of the columns of the model
+      for(int i=1; i<columns.length; ++i) {
+        int idx = columns[i].index;
+        Column col = columns[i].column;
+        JDBCField field = fields[idx];
+        Object value = field.get(rs, idx+1);
+        row.set(col.getIndex(), value);
+      }
+
+      // Stage 2. Load parent level columns if any
+      // TODO - Load parent level columns
+
+      // Stage 3. Load implementation columns
+      // TODO - Load implementation columns
+
+      // Stage 4. Next up go through all the references and load them up as well
+      for(Map.Entry<Reference, ModelMap> entry:relations.entrySet()) {
+        Reference ref = entry.getKey();
+        ModelMap m = entry.getValue();
+        int idx = m.columns[0].index;
+        JDBCField field = fields[idx];
+        Long id = (Long)field.get(rs, idx+1);
+
+        ModelInstance child = seed.get(ref, id);
+        if (child == null) {
+          ModelRow newRow = m.model.getRow(id);
+          child = (ModelInstance)m.model.create(row);
+          seed.set(ref, id, child);
+          recursiveLoad(rs, newRow, child);
+        } else {
+          recursiveLoad(rs, child.getPrimaryRow(), child);
+        }
+      }
+
+      return seed;
+    }
+
+  }
+
   private class Alias<T extends Model> {
-    private final ModelStructure<T> model;
+    private final ModelMap modelMap;
     private final Filter<T> filter;
     private final String name;
     private final Set<Order<T>> orders;
 
-    public Alias(ModelStructure<T> model, Filter<T> filter, Set<Order<T>> orders) {
-      this.model = model;
+    public Alias(ModelMap modelMap, Filter<T> filter, Set<Order<T>> orders) {
+      this.modelMap = modelMap;
       this.filter = filter;
       this.name = "A" + (++aliasNumber);
       this.orders = orders;
@@ -29,8 +108,12 @@ public class JDBCQuery<M extends Model> implements Query<M> {
       aliases.add(this);
     }
 
+    public ModelMap getModelMap() {
+      return modelMap;
+    }
+
     public ModelStructure<T> getModel() {
-      return model;
+      return modelMap.model;
     }
 
     public Filter<T> getFilter() {
@@ -62,9 +145,11 @@ public class JDBCQuery<M extends Model> implements Query<M> {
   }};
 
   private final JDBCDriver driver;
-  private final ModelStructure<M> primaryModel;
+  //private final ModelStructure<M> primaryModel;
   private final List<Alias> aliases = new ArrayList<>();
   private final List<Parameter> parameters = new ArrayList<>();
+  private final ModelMap modelMap;
+
 
   final JDBCField[] fields;
   final Column[] columns;
@@ -75,11 +160,11 @@ public class JDBCQuery<M extends Model> implements Query<M> {
 
   public JDBCQuery(JDBCDriver driver, Query.Builder<M> builder) {
     this.driver = driver;
-    this.primaryModel = builder.getPrimaryModel();
+    this.modelMap = new ModelMap(builder.getPrimaryModel());
     StringBuilder sqlBuffer = new StringBuilder();
 
     Set<Order<M>> orders = builder.getOrderBy();
-    Alias alias = new Alias(primaryModel, builder.getFilter(), orders);
+    Alias alias = new Alias(modelMap, builder.getFilter(), orders);
 
     Query.Limit limit = builder.getLimit();
     // Limit is tricky, when used with JOIN
@@ -105,7 +190,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
 //    }
 
     // Join all other references
-    buildJoins(sqlBuffer, alias, builder.getPrimaryModel(), builder.getJoins());
+    buildJoins(modelMap, sqlBuffer, alias, builder.getPrimaryModel(), builder.getJoins());
 
     // Now prepare the filter
     buildFilter(sqlBuffer, parameters);
@@ -145,6 +230,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
         columnNames.append(model.getColumn(i).getFieldName());
 
         Column col = model.getColumn(i);
+        a.modelMap.columns[i] = new QueryColumn(col, c);
         columns[c] = col;
         fields[c++] = (JDBCField)col.getField();
       }
@@ -155,8 +241,12 @@ public class JDBCQuery<M extends Model> implements Query<M> {
     sql = columnNames.toString();
   }
 
+  public ModelMap getModelMap() {
+    return modelMap;
+  }
+
   public ModelStructure<M> getPrimaryModel() {
-    return primaryModel;
+    return modelMap.model;
   }
 
   public String getSQL() {
@@ -358,13 +448,15 @@ public class JDBCQuery<M extends Model> implements Query<M> {
   }
 
   @SuppressWarnings("unchecked")
-  private void buildJoins(StringBuilder sqlBuffer, Alias parentAlias, ModelStructure parent, List<Query.Join> joins) {
+  private void buildJoins(ModelMap parentModel, StringBuilder sqlBuffer, Alias parentAlias, ModelStructure parent, List<Query.Join> joins) {
 
     for(Query.Join join:joins) {
 
       Reference reference = join.getReference();
+      ModelMap newMap = new ModelMap(reference.getTargetType());
+      parentModel.relations.put(reference, newMap);
 
-      Alias joinAlias = new Alias(reference.getTargetType(), join.filter(), join.getOrderBy());
+      Alias joinAlias = new Alias(newMap, join.filter(), join.getOrderBy());
       // If there is an intermediate table in the join then there are actually two joins to be made
       ModelStructure<ModelIntermediate> intermediate = reference.getIntermediateTable();
       if (intermediate != null) {
@@ -379,7 +471,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
       }
 
 
-      buildJoins(sqlBuffer, joinAlias, reference.getTargetType(), join.getJoinChildren());
+      buildJoins(newMap, sqlBuffer, joinAlias, reference.getTargetType(), join.getJoinChildren());
 
     }
   }

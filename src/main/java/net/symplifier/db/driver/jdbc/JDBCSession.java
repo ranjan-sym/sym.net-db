@@ -3,9 +3,7 @@ package net.symplifier.db.driver.jdbc;
 import net.symplifier.db.*;
 import net.symplifier.db.exceptions.DatabaseException;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -70,53 +68,36 @@ public class JDBCSession implements DBSession {
   @SuppressWarnings("unchecked")
   public void insert(ModelRow row) {
     ModelStructure structure = row.getStructure();
-    StringBuilder insertSql = new StringBuilder();
-    StringBuilder valuesPart = new StringBuilder();
-    List<Query.Parameter> parameters = new ArrayList<>();
+    SQLBuilder sql = new SQLBuilder();
+
 
     boolean needId = row.get(0) == null;
 
-    insertSql.append("INSERT INTO ");
-    insertSql.append(driver.formatFieldName(structure.getTableName()));
-    insertSql.append('(');
-    for(int i=0; i<structure.getColumnCount(); ++i){
-      Column col = structure.getColumn(i);
-      if (i > 0) {
-        insertSql.append(',');
-        valuesPart.append(',');
-      }
-      insertSql.append(driver.formatFieldName(col.getFieldName()));
+    sql.append("INSERT INTO ").append(structure);
 
-      Object value = row.get(i);
-      if(value == null) {
-        valuesPart.append("NULL");
-      } else {
-        valuesPart.append('?');
-        parameters.add(new Query.Parameter(value).init(col));
-      }
-    }
+    sql.append(structure.getColumns(), row.getData(), needId?1:0);
 
-    insertSql.append(") VALUES (");
-    insertSql.append(valuesPart);
-    insertSql.append(')');
-
-
-    String sql = insertSql.toString();
-    System.out.println(sql);
-    try {
-      PreparedStatement statement = connection.prepareStatement(sql);
+    String sqlText = sql.getSQL();
+    System.out.println(sqlText);
+    try (PreparedStatement statement = connection.prepareStatement(sqlText,
+              needId ? Statement.RETURN_GENERATED_KEYS : Statement.NO_GENERATED_KEYS )) {
+      List<Query.Parameter> parameters = sql.getParameters();
       for (int i = 0; i < parameters.size(); ++i) {
         Query.Parameter parameter = parameters.get(i);
         JDBCParameter p = (JDBCParameter) parameter.getSetter();
         p.set(statement, i + 1, parameter.getDefault());
       }
 
+      int affectedRows = statement.executeUpdate();
+      if (affectedRows == 0) {
+        throw new DatabaseException("Inserting record failed", null);
+      }
       if (needId) {
-        long id = 0;
-        statement.executeQuery();
-        row.set(0, id);
-      } else {
-        statement.executeUpdate();
+        try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
+          if (generatedKeys.next()) {
+            row.set(0, generatedKeys.getLong(1));
+          }
+        }
       }
     } catch(SQLException e) {
       throw new DatabaseException("An error occurred while trying to insert record", e);
@@ -129,11 +110,9 @@ public class JDBCSession implements DBSession {
   @SuppressWarnings("unchecked")
   public void update(ModelRow row, long id) {
     ModelStructure structure = row.getStructure();
-    StringBuilder updateSql = new StringBuilder();
-    List<Query.Parameter> parameters = new ArrayList<>();
+    SQLBuilder updateSql = new SQLBuilder();
 
-    updateSql.append("UPDATE ");
-    updateSql.append(driver.formatFieldName(structure.getTableName()));
+    updateSql.append("UPDATE ").append(structure);
     updateSql.append(" SET ");
     boolean first = true;
     for(int i=1; i<structure.getColumnCount(); ++i) {
@@ -148,23 +127,19 @@ public class JDBCSession implements DBSession {
       } else {
         first = false;
       }
-      updateSql.append(driver.formatFieldName(col.getFieldName()));
-      updateSql.append('=');
-      Object value = row.get(i);
-      if (value == null) {
-        updateSql.append("NULL");
-      } else {
-        updateSql.append('?');
-        parameters.add(new Query.Parameter(value).init(col));
-      }
+      updateSql.append(col, row.get(i));
     }
 
-    String sql = updateSql.toString();
+    updateSql.append(" WHERE ");
+    updateSql.append(structure.getColumn(0), row.get(0));
+
+    String sql = updateSql.getSQL();
+    System.out.println(sql);
 
     // hit the database if we find any column to update
     if(!first) {
-      try {
-        PreparedStatement statement = connection.prepareStatement(sql);
+      try(PreparedStatement statement = connection.prepareStatement(sql)) {
+        List<Query.Parameter> parameters = updateSql.getParameters();
         for (int i = 0; i < parameters.size(); ++i) {
           Query.Parameter parameter = parameters.get(i);
           JDBCParameter p = (JDBCParameter) parameter.getSetter();

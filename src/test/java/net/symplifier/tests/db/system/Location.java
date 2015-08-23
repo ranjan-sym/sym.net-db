@@ -1,17 +1,18 @@
 package net.symplifier.tests.db.system;
 
-import net.symplifier.db.Schema;
-import net.symplifier.db.SchemaModel;
-import net.symplifier.db.columns.concrete.StringColumn;
+import net.symplifier.db.Column;
+import net.symplifier.db.ModelInstance;
+import net.symplifier.db.ModelStructure;
+import net.symplifier.db.Relation;
 
 /**
  * Created by ranjan on 7/3/15.
  */
-public class Location extends SchemaModel {
+public class Location extends ModelInstance {
 
-  public static final StringColumn<Location> name = new StringColumn<>("name", Location.class);
+  public static final Column.Text<Location> name = new Column.Text<>();
 
-  public Location(Schema schema) {
-    super(schema);
-  }
+
+  public static final Relation.HasMany<Location, EventLog> logs = new Relation.HasMany<Location, EventLog>(EventLog.class, EventLog.location);
+
 }

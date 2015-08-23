@@ -40,9 +40,10 @@ public class JDBCResult<T extends Model> implements Query.Result<T> {
     ModelStructure<T> primaryModel = query.getPrimaryModel();
     ModelStructure currentModel = primaryModel;
     ModelRow       currentRow = null;
-    T res = null;
+    ModelInstance res = null;
 
     Long primaryId = null;
+    JDBCQuery.ModelMap root = query.getModelMap();
 
 
     // update all the data on the cache as it is received
@@ -52,45 +53,20 @@ public class JDBCResult<T extends Model> implements Query.Result<T> {
     try {
       do {
         // We expect as many data as the number of fields that we have defined
-        for (int i = 0; i < query.fields.length; ++i) {
-          JDBCField field = query.fields[i];
-          Column col = query.columns[i];
-          Object value = field.get(resultSet, i + 1);
-
-          // The chunk of data for different model is supposed to start with a
-          // primary column.
-          if (col.isPrimary()) {
-            currentModel = col.getModel();
-            currentRow = currentModel.getRow((Long) value);
-            // We are probably dealing with the first record
-            if (res == null) {
-              primaryId = (Long) value;
-              res = (T)primaryModel.create(currentRow);
-            } else if (currentModel == primaryModel) {
-              // Stop reading if the record set has moved to next row on the
-              // primary model
-              if (primaryId != value) {
-                break;
-              }
-            }
-          } else {
-            // This assertion fails if the ordering of column in the models are
-            // not correct or for some reasons, the primary key column is not
-            // on the top of the column list
-            assert (currentModel == col.getModel());
-          }
-
-          // if the columns are not ordered properly, we can get null pointer
-          // exception here
-          assert currentRow != null;
-          currentRow.set(col.getIndex(), value);
-
+        ModelInstance r = root.load(resultSet, res);
+        if (r == null) {
+          // Result set is at the next row
+          break;
+        } else {
+          // We found a new row
+          res = r;
         }
       } while (eof = resultSet.next());
     } catch(SQLException e) {
       throw new DatabaseException("Error while retrieving data from Query", e);
     }
-    return res;
+
+    return (T)res;
   }
 
 

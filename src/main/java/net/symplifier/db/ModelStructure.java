@@ -241,7 +241,18 @@ public class ModelStructure<T extends Model> {
   }
 
   public T create(ModelRow row) {
-    return modelFactory.create(this);
+
+    try {
+      ModelInstance m = (ModelInstance) this.getType().newInstance();
+      m.init(row);
+      return (T)m;
+    } catch (InstantiationException e) {
+      e.printStackTrace();
+    } catch (IllegalAccessException e) {
+      e.printStackTrace();
+    }
+
+    return null;
   }
 
   public T create() {
@@ -266,6 +277,10 @@ public class ModelStructure<T extends Model> {
 
   public Column<T, ?> getColumn(int index) {
     return columns.get(index);
+  }
+
+  public List<Column<T, ?>> getColumns() {
+    return columns;
   }
 
   public Column<T, ?> getColumn(String fieldName) {

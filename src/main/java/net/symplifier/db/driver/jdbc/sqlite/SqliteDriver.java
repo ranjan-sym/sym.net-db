@@ -12,4 +12,13 @@ public class SqliteDriver extends JDBCDriver {
   protected SqliteDriver(Schema schema, String uri, String username, String password) {
     super(schema, uri, username, password);
   }
+
+  @Override
+  protected String getTypeName(Class type) {
+    if (type == Long.class) {
+      return "INTEGER";
+    } else {
+      return super.getTypeName(type);
+    }
+  }
 }

@@ -1,22 +1,27 @@
 package net.symplifier.tests.db.system;
 
 import net.symplifier.db.*;
-import net.symplifier.db.columns.concrete.BooleanColumn;
-import net.symplifier.db.columns.concrete.StringColumn;
+
+import java.util.List;
 
 /**
  * Created by ranjan on 7/3/15.
  */
-public class Event extends ModelInstance {
+public class Event extends ModelInstance<Event> {
 
-  public static final Column<Event, String> code = new Column<>(Event.class, String.class, 1000);
-  public static final Column<Event, String> type = new Column<>(Event.class, String.class);
-  public static final Column<Event, String> description = new Column<>(Event.class, String.class);
-  public static final Column<Event, Boolean> triggerOn = new Column<>(Event.class, Boolean.class);
+  public static final Query.Builder<Event> Query = new Query.Builder<>(Event.class);
 
-  public Event(ModelStructure structure) {
-    super(structure);
-  }
+  public static final Column.Primary<Event> id = new Column.Primary<>();
+
+  public static final Column.Text<Event> code = new Column.Text<>();
+  public static final Column.Text<Event> type = new Column.Text<>();
+  public static final Column.Text<Event> description = new Column.Text<>();
+  public static final Column.Bool<Event> triggerOn = new Column.Bool<>();
+
+
+  public static final Relation.HasMany<Event, EventLog> logs =
+          new Relation.HasMany<>(EventLog.class, EventLog.event);
+
 
   public String getCode() {
     return get(code);
@@ -48,6 +53,10 @@ public class Event extends ModelInstance {
 
   public void setTriggerOn(Boolean value) {
     set(triggerOn, value);
+  }
+
+  public List<EventLog> getLogs() {
+    return get(logs);
   }
 
 }

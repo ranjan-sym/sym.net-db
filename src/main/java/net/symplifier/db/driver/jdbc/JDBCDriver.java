@@ -73,7 +73,7 @@ public abstract class JDBCDriver implements Driver, Session.Listener {
     Session.addListener(this);
   }
 
-  private String getTypeName(Class<?> type) {
+  protected String getTypeName(Class<?> type) {
     if (type == Integer.class) {
       return "INT";
     } else if (type == Float.class) {
@@ -114,7 +114,7 @@ public abstract class JDBCDriver implements Driver, Session.Listener {
       builder.append(getTypeName(col.getValueType()));
 
       if (col.isPrimary()) {
-        builder.append(" PRIMARY KEY");
+        builder.append(" PRIMARY KEY AUTOINCREMENT");
       }
 
       if (!col.canBeNull()) {

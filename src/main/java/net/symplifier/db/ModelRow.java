@@ -27,6 +27,10 @@ public class ModelRow {
     this.modificationBits = 0;
   }
 
+  public Object[] getData() {
+    return rowData;
+  }
+
   /**
    * A model created as a copy of another row. Used for making the model
    * somewhat immutable
@@ -86,7 +90,7 @@ public class ModelRow {
    * @return {@code true} if the field has been modified
    */
   public boolean isModified(int item) {
-    return (modificationBits & (2L << item)) != 0L;
+    return (modificationBits & (1L << item)) != 0L;
   }
 
   /**

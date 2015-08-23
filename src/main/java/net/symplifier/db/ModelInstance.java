@@ -75,6 +75,14 @@ public class ModelInstance<M extends ModelInstance> implements Model {
     }
   }
 
+  public ModelRow getPrimaryRow() {
+    if (set == null) {
+      return null;
+    } else {
+      return set.primaryRow;
+    }
+  }
+
   @Override
   public <T> T get(Column<?, T> column, int level) {
     if (set == null) {
@@ -261,6 +269,47 @@ public class ModelInstance<M extends ModelInstance> implements Model {
     }
   }
 
+  /**
+   * Helper method used by query loading while setting the referenced row
+   *
+   * @param ref
+   * @param id
+   * @return
+   */
+  public ModelInstance get(Reference ref, long id) {
+    if (ref instanceof Column.Reference) {
+      Model m = referencedData.get(ref);
+      if (m == null || m.getId() != id) {
+        return null;
+      } else {
+        return (ModelInstance)m;
+      }
+    } else if (ref instanceof Relation.HasMany) {
+      RelationalData d = hasManyData.get(ref);
+      if (d == null || !d.existingRecords.containsKey(id)) {
+        return null;
+      } else {
+        return (ModelInstance)d.existingRecords.get(id);
+      }
+    } else {
+      return null;
+    }
+  }
+
+  /**
+   * Helper method used by query loading while setting the referenced row
+   * @param ref
+   * @param id
+   * @param model
+   */
+  public void set(Reference ref, long id, Model model) {
+    if (ref instanceof Column.Reference) {
+      referencedData.put((Column.Reference)ref, model);
+    } else if (ref instanceof Relation.HasMany) {
+      RelationalData d = hasManyData.get(ref);
+      d.add(model);
+    }
+  }
 
   /**
    * Load all the data for the relationship, cache and return
@@ -449,5 +498,7 @@ public class ModelInstance<M extends ModelInstance> implements Model {
         }
       }
     }
+
+    saving = false;
   }
 }
