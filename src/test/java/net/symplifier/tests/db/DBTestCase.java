@@ -61,7 +61,7 @@ public class DBTestCase implements Schema.Generator {
   @Test
   public void testModelConsistency() throws DatabaseException {
 
-    Session.start(null);
+    Session session = Session.start(null);
 
     Query<Book> q = Book.Q()
               .join(Book.authors.asc(Author.name))
@@ -90,7 +90,7 @@ public class DBTestCase implements Schema.Generator {
 
 
 
-    Session.end();
+    session.end();
 
     System.out.println();
 
