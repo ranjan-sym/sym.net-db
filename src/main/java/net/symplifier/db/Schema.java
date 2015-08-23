@@ -64,7 +64,9 @@ public class Schema {
   }
 
   private void buildRelationship() {
-    allModels.values().forEach(net.symplifier.db.ModelStructure::buildRelationship);
+    for(ModelStructure m:allModels.values()) {
+      m.buildRelationship();
+    }
   }
   /**
    * Creates all the model into the database system
