@@ -48,7 +48,7 @@ public class ModelStructure<T extends Model> {
   /* This list is not being used at the moment, and may be useful only in case
      we decide to use automatically loaded (default) references
    */
-  private final LinkedHashSet<Reference> references;
+  private final LinkedHashMap<String, Reference> references;
 
   /* The hierarchy of the model. */
   private final ModelStructure[] parents;
@@ -150,7 +150,7 @@ public class ModelStructure<T extends Model> {
       }
     }
 
-    references = new LinkedHashSet<>();
+    references = new LinkedHashMap<>();
     columns = new ArrayList<>();
 
     this.effectiveTablesCount = 1 + parents.length + implementations.size();
@@ -180,7 +180,7 @@ public class ModelStructure<T extends Model> {
           }
 
           if (Reference.class.isAssignableFrom(f.getType())) {
-            references.add((Reference)f.get(null));
+            references.put(f.getName(), (Reference)f.get(null));
           }
         }
       } catch (IllegalAccessException e) {
@@ -201,7 +201,7 @@ public class ModelStructure<T extends Model> {
         i+= 1;
       }
     }
-    for(Reference reference:this.references) {
+    for(Reference reference:this.references.values()) {
       reference.onInitReference(this);
     }
   }
@@ -312,5 +312,15 @@ public class ModelStructure<T extends Model> {
 
   public Collection<ModelStructure> getImplementations() {
     return implementations.keySet();
+  }
+
+  /**
+   * Retrieve the Relation for the given name
+   *
+   * @param name Name of the relationship (camelCase)
+   * @return The Relation object or {@code null}
+   */
+  public Reference getReference(String name) {
+    return references.get(name);
   }
 }
