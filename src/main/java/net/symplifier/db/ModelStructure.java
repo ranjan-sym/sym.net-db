@@ -284,7 +284,19 @@ public class ModelStructure<T extends Model> {
   }
 
   public Column<T, ?> getColumn(String fieldName) {
-    return columns.get(columnIndex.get(fieldName));
+    Integer index = columnIndex.get(fieldName);
+    if (index == null) {
+      // Search on the parent structures to retrieve the column recursively
+      // Since we are doing it recursively, we only need to do the call on
+      // the last parent
+      if (parents.length == 0) {
+        return null;
+      } else {
+        return parents[parents.length-1].getColumn(fieldName);
+      }
+    } else {
+      return columns.get(index);
+    }
   }
 
   /**
