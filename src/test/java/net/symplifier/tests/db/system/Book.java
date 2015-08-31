@@ -27,7 +27,7 @@ public class Book extends ModelInstance<Book> {
   }
 
   public Publisher getPublisher() {
-    return get(publisher);
+    return getReference(publisher);
   }
 
   public void setTitle(String value) {
