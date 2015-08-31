@@ -88,9 +88,15 @@ public class RestServlet extends HttpServlet {
     Model record = null;
     try {
       record = createRecord(model, source);
+
     } catch(Exception e) {
-      response.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
+      e.printStackTrace();
+      response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+      response.getWriter().print(e.getMessage());
+      response.flushBuffer();
+      return;
     }
+
 
     // Save the record
     record.save();
