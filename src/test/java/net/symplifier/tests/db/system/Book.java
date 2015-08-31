@@ -39,7 +39,7 @@ public class Book extends ModelInstance<Book> {
   }
 
   public void setPublisher(Publisher value) {
-    set(publisher, value);
+    setReference(publisher, value);
   }
 
   public void addAuthor(Author author) {
