@@ -104,6 +104,11 @@ public class Schema {
   public <T extends Model> ModelStructure<T> getModelStructure(Class clazz) {
     return (ModelStructure<T>)allModels.get(clazz);
   }
+
+  @SuppressWarnings("unchecked")
+  public <T extends Model> ModelStructure<T> getModelStructure(String name) {
+    return (ModelStructure<T>)allModels.get(namedModels.get(name));
+  }
   /**
    * Registers the given Model class with the schema with a custom Model
    * Factory
