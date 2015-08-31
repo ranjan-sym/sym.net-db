@@ -367,7 +367,8 @@ public class ModelInstance<M extends ModelInstance> implements Model {
     return d.getAll();
   }
 
-  public <U extends M, V extends Model> V add(Relation.HasMany<U, V> relation, V model) {
+  @Override
+  public <U extends Model, V extends Model> V add(Relation.HasMany<U, V> relation, V model) {
     // Just need to add this on the list
     RelationalData<V> d = (RelationalData<V>)hasManyData.get(relation);
     if (d == null) {

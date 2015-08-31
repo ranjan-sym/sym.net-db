@@ -86,6 +86,9 @@ public interface Model {
    */
   <U extends Model, V extends Model> void set(Column.Reference<U, V> column, V model);
 
+
+  <U extends Model, V extends Model> V add(Relation.HasMany<U, V> relation, V model);
+
   /**
    * Set the value of the given column of this model. When a value
    * is set for a model, a new copy is created, leaving the existing
