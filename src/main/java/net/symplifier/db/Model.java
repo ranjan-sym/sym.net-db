@@ -84,7 +84,7 @@ public interface Model {
    * @param <U> The type of the parent model that holds this reference
    * @param <V> The type of the model that is referred by this reference
    */
-  <U extends Model, V extends Model> void set(Column.Reference<U, V> column, V model);
+  <U extends Model, V extends Model> void setReference(Column.Reference<U, V> column, V model);
 
 
   <U extends Model, V extends Model> V add(Relation.HasMany<U, V> relation, V model);

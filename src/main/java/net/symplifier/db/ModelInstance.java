@@ -259,7 +259,7 @@ public class ModelInstance<M extends ModelInstance> implements Model {
   }
 
   @Override
-  public <U extends Model, V extends Model> void set(Column.Reference<U, V> column, V reference) {
+  public <U extends Model, V extends Model> void setReference(Column.Reference<U, V> column, V reference) {
     referencedData.put(column, reference);
 
     if (reference == null || reference.getId() == null) {
