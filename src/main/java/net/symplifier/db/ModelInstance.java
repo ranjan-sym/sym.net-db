@@ -244,7 +244,7 @@ public class ModelInstance<M extends ModelInstance> implements Model {
   }
 
   @Override
-  public <U extends Model, V extends Model> V get(Column.Reference<U, V> column) {
+  public <U extends Model, V extends Model> V getReference(Column.Reference<U, V> column) {
     if (referencedData.containsKey(column)) {
       return (V)referencedData.get(column);
     } else {

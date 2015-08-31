@@ -74,7 +74,7 @@ public interface Model {
    * @param <V> The type of the model that is referred by this reference
    * @return The model record as per the reference
    */
-  <U extends Model, V extends Model> V get(Column.Reference<U, V> column);
+  <U extends Model, V extends Model> V getReference(Column.Reference<U, V> column);
 
   /**
    * Set a referenced type model
