@@ -194,7 +194,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
       this.modelMap.parents.add(parentMap);
 
       Alias pAlias = new Alias(parentMap, null, null);
-      aliases.add(pAlias);
+      //aliases.add(pAlias);
       makeJoin(sqlBuffer, "INNER", parent.getTableName(), alias.name,
               getPrimaryModel().getPrimaryKeyField(),
               pAlias.name, parent.getPrimaryKeyField());
@@ -388,12 +388,20 @@ public class JDBCQuery<M extends Model> implements Query<M> {
     sqlBuffer.append("\r\n\tORDER BY ");
     boolean first = true;
     for(Alias alias:aliases) {
+      Set<Order> orders = alias.getOrders();
+      if (orders == null) {
+        // The is the condition where the alias belongs to a parent model
+        // No need to do anything in this case, we will just assume it
+        // doesn't exist, as that alias is only needed for column
+        // extraction
+        continue;
+      }
       if (!first) {
         sqlBuffer.append(",\r\n           ");
         first = true;
       }
-      Set<Order> orders = alias.getOrders();
-      if (orders == null || orders.size() == 0) {
+
+      if (orders.size() == 0) {
         // If no order by has been defined, then the primary key is taken
         // as the default ordering
         sqlBuffer.append(alias.toString());
@@ -416,7 +424,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
             Set<ModelMap> parents = alias.getModelMap().parents;
             for(ModelMap parent: parents) {
               if (parent.model.containsColumn(col)) {
-                correctAlias = alias;
+                correctAlias = parent.alias;
                 break;
               }
             }
