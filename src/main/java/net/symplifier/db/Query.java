@@ -168,17 +168,16 @@ public interface Query<T extends Model> {
   /**
    * Keep track of the fields that provide ordering in the Query
    *
-   * @param <T> The primary model
    */
-  class Order<T extends Model> {
-    private final Column<T, ?> column;
+  class Order {
+    private final Column column;
     private final boolean isDescending;
-    public Order(Column<T, ?> column, boolean isDescending) {
+    public Order(Column column, boolean isDescending) {
       this.column = column;
       this.isDescending = isDescending;
     }
 
-    public Column<T, ?> getColumn() {
+    public Column getColumn() {
       return column;
     }
 
@@ -213,7 +212,7 @@ public interface Query<T extends Model> {
   class Builder<T extends Model> {
     private final ModelStructure<T> primaryModel;
     private final Filter<T> filter = new Filter<T>();
-    private final Set<Order<T>> orderBy = new LinkedHashSet<>();
+    private final Set<Order> orderBy = new LinkedHashSet<>();
     private final List<Join> joins = new ArrayList<>();
     private final Set<Column<T, ?>> fields;
 
@@ -263,7 +262,7 @@ public interface Query<T extends Model> {
       return filter;
     }
 
-    public Set<Order<T>> getOrderBy() { return orderBy; }
+    public Set<Order> getOrderBy() { return orderBy; }
 
     public Limit getLimit() {
       return limit;
@@ -292,16 +291,16 @@ public interface Query<T extends Model> {
       return this;
     }
 
-    public Builder<T> asc(Column<T, ?> ... columns) {
-      for(Column<T, ?> col:columns) {
-        this.orderBy.add(new Order<T>(col, false));
+    public Builder<T> asc(Column<? super T, ?> ... columns) {
+      for(Column<? super T, ?> col:columns) {
+        this.orderBy.add(new Order(col, false));
       }
       return this;
     }
 
-    public Builder<T> desc(Column<T, ?> ... columns) {
-      for(Column<T, ?> col:columns) {
-        this.orderBy.add(new Order<T>(col, true));
+    public Builder<T> desc(Column<? super T, ?> ... columns) {
+      for(Column<? super T, ?> col:columns) {
+        this.orderBy.add(new Order(col, true));
       }
       return this;
     }
@@ -355,7 +354,7 @@ public interface Query<T extends Model> {
     private final Filter<T> filter;
     private final List<Join> joins = new ArrayList<>();
     private final Set<Column<T, ?>> fields;
-    private final Set<Order<T>> orderBy;
+    private final Set<Order> orderBy;
 
     /**
      * Creates a join based on a reference column
@@ -402,7 +401,7 @@ public interface Query<T extends Model> {
       }
     }
 
-    public void asc(Column<T, ?> ... columns) {
+    public void asc(Column<? super T, ?> ... columns) {
       orderBy(columns, false);
     }
 
@@ -410,9 +409,9 @@ public interface Query<T extends Model> {
       orderBy(columns, true);
     }
 
-    private void orderBy(Column<T, ?>[] columns, boolean desc) {
-      for(Column<T, ?> column: columns) {
-        this.orderBy.add(new Order<>(column, desc));
+    private void orderBy(Column<? super T, ?>[] columns, boolean desc) {
+      for(Column<? super T, ?> column: columns) {
+        this.orderBy.add(new Order(column, desc));
       }
     }
 
@@ -439,7 +438,7 @@ public interface Query<T extends Model> {
     }
 
 
-    public Set<Order<T>> getOrderBy() {
+    public Set<Order> getOrderBy() {
       return orderBy;
     }
 
