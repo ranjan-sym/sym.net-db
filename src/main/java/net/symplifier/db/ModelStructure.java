@@ -335,4 +335,22 @@ public class ModelStructure<T extends Model> {
   public Reference getReference(String name) {
     return references.get(name);
   }
+
+  /**
+   * Check if the given column belongs to this model. This method is specially
+   * used when the drivers need to find out if the column came actually from
+   * the model that its working on or the one of the parent models
+   *
+   * @param col The column to check
+   * @return {@code true} if the column belongs to this model otherwise
+   *         {@code false}
+   */
+  public boolean containsColumn(Column col) {
+    for(Column c:columns) {
+      if (c == col) {
+        return true;
+      }
+    }
+    return false;
+  }
 }
