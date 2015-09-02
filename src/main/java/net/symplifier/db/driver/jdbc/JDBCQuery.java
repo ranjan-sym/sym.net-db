@@ -393,7 +393,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
         first = true;
       }
       Set<Order> orders = alias.getOrders();
-      if (orders.size() == 0) {
+      if (orders == null || orders.size() == 0) {
         // If no order by has been defined, then the primary key is taken
         // as the default ordering
         sqlBuffer.append(alias.toString());
