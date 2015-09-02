@@ -108,6 +108,10 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
     return field;
   }
 
+  String getName() {
+    return this.name;
+  }
+
   void setName(java.lang.String name) {
     this.name = name;
   }
@@ -311,6 +315,15 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
       referenceModel = structure.getSchema().registerModel(referenceType);
     }
 
+    public String getRelationName() {
+      return getName();
+    }
+
+    public void setRelationName(String name) {
+      assert(name == this.getName());
+      // no need to do anything
+    }
+
     @Override
     protected String generateFieldName() {
       return super.generateFieldName() + "_id";
@@ -359,6 +372,16 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
     @Override
     public void onInitReference(ModelStructure<M> owner) {
 
+    }
+
+    @Override
+    public void setRelationName(String name) {
+      assert(name == getName());
+    }
+
+    @Override
+    public String getRelationName() {
+      return getName();
     }
 
     @Override

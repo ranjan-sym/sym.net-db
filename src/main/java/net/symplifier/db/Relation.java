@@ -70,6 +70,9 @@ public interface Relation {
 //  }
 
   class HasMany<M extends Model, T extends Model> implements Reference<M, T> {
+
+    /** The name of the field in the Java class for this relationship */
+    private String relationName;
     private ModelStructure<M> sourceModel;
     private ModelStructure<T> targetModel;
 
@@ -106,6 +109,15 @@ public interface Relation {
       this.sourceFieldName = sourceFieldName;
     }
 
+    @Override
+    public String getRelationName() {
+      return relationName;
+    }
+
+    @Override
+    public void setRelationName(String name) {
+      this.relationName = name;
+    }
     @Override
     public void onInitReference(ModelStructure<M> model) {
       this.sourceModel = model;

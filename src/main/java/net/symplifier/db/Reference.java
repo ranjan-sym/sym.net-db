@@ -14,6 +14,20 @@ package net.symplifier.db;
 public interface Reference<M extends Model, T extends Model> {
 
   /**
+   * Retrieve the name of the relationship as defined in the Java Model class
+   *
+   * @return The name of the relation (camelCase)
+   */
+  String getRelationName();
+
+  /**
+   * Sets the name of the relationship
+   *
+   * @param name The name of the relationship (camelCase);
+   */
+  void setRelationName(String name);
+
+  /**
    * Retrieve the information of the Source Model
    *
    * @return The {@link ModelStructure} of the source model
