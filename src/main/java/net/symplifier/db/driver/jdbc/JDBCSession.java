@@ -2,6 +2,8 @@ package net.symplifier.db.driver.jdbc;
 
 import net.symplifier.db.*;
 import net.symplifier.db.exceptions.DatabaseException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -13,6 +15,8 @@ import java.util.List;
  * Created by ranjan on 7/29/15.
  */
 public class JDBCSession implements DBSession {
+  public static final Logger LOGGER = LogManager.getLogger(JDBCSession.class);
+
   private final JDBCDriver driver;
   private final Connection connection;
 
@@ -60,6 +64,7 @@ public class JDBCSession implements DBSession {
         return prepared;
       }
     } catch(SQLException e) {
+      LOGGER.error(q.getSQL());
       throw new DatabaseException("Error while preparing sql", e);
     }
   }
