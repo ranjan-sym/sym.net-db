@@ -3,6 +3,7 @@ package net.symplifier.db;
 
 import net.symplifier.core.application.Session;
 import net.symplifier.db.exceptions.ModelException;
+import org.json.JSONObject;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -135,6 +136,13 @@ public interface Model {
     save(Session.get(Schema.get(), DBSession.class));
   }
 
+
+  /**
+   * Convert Model to JSON
+   *
+   * @return JSONObject
+   */
+  JSONObject toJSON();
   //TODO implement the following events through interceptor and not here
   default void onValidateSelect() {
 
@@ -294,5 +302,6 @@ public interface Model {
       }
     }
   }
+
 
 }

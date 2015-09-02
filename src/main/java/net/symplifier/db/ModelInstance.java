@@ -1,5 +1,8 @@
 package net.symplifier.db;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.util.*;
 
 /**
@@ -9,6 +12,8 @@ import java.util.*;
  * Created by ranjan on 7/28/15.
  */
 public class ModelInstance<M extends ModelInstance> implements Model {
+
+
 
   public class ModelSet {
     private final ModelStructure<M> structure;
@@ -192,7 +197,7 @@ public class ModelInstance<M extends ModelInstance> implements Model {
     }
   }
 
-  private final Map<Relation.HasMany, RelationalData<? extends Model>> hasManyData = new LinkedHashMap<>();
+  private final Map<Relation.HasMany, RelationalData> hasManyData = new LinkedHashMap<>();
   private final Map<Column.Reference, Model> referencedData = new LinkedHashMap<>();
 
 
@@ -471,8 +476,8 @@ public class ModelInstance<M extends ModelInstance> implements Model {
     }
 
     // Stage 4. Save the has many relation data
-    Set<Map.Entry<Relation.HasMany, RelationalData<? extends Model>>> entries = hasManyData.entrySet();
-    for(Map.Entry<Relation.HasMany, RelationalData<? extends Model>> entry:entries) {
+    Set<Map.Entry<Relation.HasMany, RelationalData>> entries = hasManyData.entrySet();
+    for(Map.Entry<Relation.HasMany, RelationalData> entry:entries) {
       Relation.HasMany ref = entry.getKey();
       RelationalData d = entry.getValue();
 
@@ -501,5 +506,73 @@ public class ModelInstance<M extends ModelInstance> implements Model {
     }
 
     saving = false;
+  }
+
+  public JSONObject toJSON() {
+    return toJSON(0);
+  }
+
+  private JSONObject toJSON(int level) {
+    // In case of nested JSON creation, we will nest till 5th level
+    // only, otherwise we may fall in the circular reference trap
+    if (level == 5) {
+      return null;
+    }
+    JSONObject o = new JSONObject();
+
+    ModelStructure m = this.getStructure();
+
+    // first set the type
+    ModelStructure[] parents = m.getParents();
+    if (parents.length == 0) {
+      o.put("_type", m.getTableName());
+    } else {
+      JSONArray types = new JSONArray();
+      types.put(0, m.getTableName());
+      for(int i=1; i<=parents.length; ++i) {
+        types.put(i, parents[i-1].getTableName());
+      }
+      o.put("_type", types);
+    }
+
+    // next get all the values and put them up
+    List<Column> cols = m.getColumns();
+    for(Column c:cols) {
+      updateJSON(o, c.getFieldName(), this.get(c));
+    }
+    for(int i=0; i<parents.length; ++i) {
+      cols = parents[i].getColumns();
+      for(Column c:cols) {
+        updateJSON(o, c.getFieldName(), this.get(c));
+      }
+    }
+
+    // now the references
+    // first is the BelongsTo reference
+    for(Map.Entry<Column.Reference, Model> entry:this.referencedData.entrySet()) {
+      updateJSON(o, entry.getKey().getRelationName(), entry.getValue().toJSON());
+    }
+    // Next is the has many relation
+    for(Map.Entry<Relation.HasMany, RelationalData> entry: this.hasManyData.entrySet()) {
+      JSONArray ar = new JSONArray();
+
+      List<Model> list = entry.getValue().getAll();
+      for(Model data:list) {
+        ar.put(data.toJSON());
+      }
+
+      updateJSON(o, entry.getKey().getRelationName(), ar);
+    }
+
+
+    return o;
+  }
+
+  private void updateJSON(JSONObject obj, String key, Object value) {
+    if(value instanceof Date) {
+      obj.put(key, Schema.ISO_8601_DATE_TIME.format((Date) value));
+    } else {
+      obj.put(key, value);
+    }
   }
 }
