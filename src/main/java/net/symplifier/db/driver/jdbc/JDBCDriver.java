@@ -143,7 +143,9 @@ public abstract class JDBCDriver implements Driver, Session.Listener {
   @Override
   public void onSessionBegin(Session session) {
     try {
-      session.attach(schema, new JDBCSession(this, dataSource.getConnection()));
+      JDBCSession s = new JDBCSession(this, dataSource.getConnection());
+      s.beginTransaction();
+      session.attach(schema, s);
     } catch(SQLException e) {
       throw new DatabaseException("Error while starting a new JDBC Session", e);
     }
@@ -154,6 +156,16 @@ public abstract class JDBCDriver implements Driver, Session.Listener {
   public void onSessionEnd(Session session) {
     JDBCSession s = session.getAttachment(schema, JDBCSession.class);
     s.close();
+  }
+
+  public void onSessionCommit(Session session) {
+    JDBCSession s = session.getAttachment(schema, JDBCSession.class);
+    s.commitTransaction();
+  }
+
+  public void onSessionRollback(Session session) {
+    JDBCSession s = session.getAttachment(schema, JDBCSession.class);
+    s.rollbackTransaction();
   }
 
   /**

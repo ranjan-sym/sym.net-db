@@ -30,6 +30,30 @@ public class JDBCSession implements DBSession {
     this.connection = connection;
   }
 
+  public void beginTransaction() {
+    try {
+      this.connection.setAutoCommit(false);
+    } catch (SQLException e) {
+      LOGGER.error("Could not start transaction", e);
+    }
+  }
+
+  public void rollbackTransaction() {
+    try {
+      this.connection.rollback();
+    } catch(SQLException e) {
+      LOGGER.error("Could not rollback transaction", e);
+    }
+  }
+
+  public void commitTransaction() {
+    try {
+      this.connection.commit();
+    } catch(SQLException e) {
+      LOGGER.error("Could not commit transaction", e);
+    }
+  }
+
   public void close() {
     try {
       // Close all the prepared statements
@@ -37,13 +61,11 @@ public class JDBCSession implements DBSession {
         try {
           p.statement.close();
         } catch(SQLException e) {
-          System.out.println("Error while closing statment");
-          e.printStackTrace();
+          LOGGER.error("Session closing. Error while closing prepared statement", e);
         }
       }
 
       // Close all the result sets
-
       this.connection.close();
     } catch (SQLException e) {
       e.printStackTrace();
