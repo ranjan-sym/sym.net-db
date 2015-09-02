@@ -27,12 +27,15 @@ public class JDBCQuery<M extends Model> implements Query<M> {
   public class ModelMap {
     private final ModelStructure model;
     private final Map<Reference, ModelMap> relations;
+    private final Set<ModelMap> parents;
     private final QueryColumn[] columns;
+    private Alias alias;
 
     public ModelMap(ModelStructure model) {
       this.model = model;
       this.columns = new QueryColumn[model.getColumnCount()];
       this.relations = new LinkedHashMap<>();
+      this.parents = new LinkedHashSet<>();
     }
 
     ModelInstance load(ResultSet rs, ModelInstance seed) throws SQLException {
@@ -97,10 +100,11 @@ public class JDBCQuery<M extends Model> implements Query<M> {
     private final ModelMap modelMap;
     private final Filter<T> filter;
     private final String name;
-    private final Set<Order<T>> orders;
+    private final Set<Order> orders;
 
-    public Alias(ModelMap modelMap, Filter<T> filter, Set<Order<T>> orders) {
+    public Alias(ModelMap modelMap, Filter<T> filter, Set<Order> orders) {
       this.modelMap = modelMap;
+      this.modelMap.alias = this;
       this.filter = filter;
       this.name = "A" + (++aliasNumber);
       this.orders = orders;
@@ -120,7 +124,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
       return filter;
     }
 
-    public Set<Order<T>> getOrders() {
+    public Set<Order> getOrders() {
       return orders;
     }
 
@@ -163,7 +167,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
     this.modelMap = new ModelMap(builder.getPrimaryModel());
     StringBuilder sqlBuffer = new StringBuilder();
 
-    Set<Order<M>> orders = builder.getOrderBy();
+    Set<Order> orders = builder.getOrderBy();
     Alias alias = new Alias(modelMap, builder.getFilter(), orders);
 
     Query.Limit limit = builder.getLimit();
@@ -184,10 +188,17 @@ public class JDBCQuery<M extends Model> implements Query<M> {
 
 
 //    Plan to implement parent level join with the help of primary keys
-//    // Join all the parents as well
-//    for(ModelStructure parent:primaryModel.getParents()) {
-//      makeJoin(sqlBuffer, "INNER", parent.getTableName(), alias, primaryModel.getPrimaryKeyField(), new Alias(parent, null), parent.getPrimaryKeyField());
-//    }
+    // Join all the parents as well
+    for(ModelStructure parent:getPrimaryModel().getParents()) {
+      ModelMap parentMap = new ModelMap(parent);
+      this.modelMap.parents.add(parentMap);
+
+      Alias pAlias = new Alias(parentMap, null, null);
+      aliases.add(pAlias);
+      makeJoin(sqlBuffer, "INNER", parent.getTableName(), alias.name,
+              getPrimaryModel().getPrimaryKeyField(),
+              pAlias.name, parent.getPrimaryKeyField());
+    }
 
     // Join all other references
     buildJoins(modelMap, sqlBuffer, alias, builder.getPrimaryModel(), builder.getJoins());
@@ -381,7 +392,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
         sqlBuffer.append(",\r\n           ");
         first = true;
       }
-      Set<Order<?>> orders = alias.getOrders();
+      Set<Order> orders = alias.getOrders();
       if (orders.size() == 0) {
         // If no order by has been defined, then the primary key is taken
         // as the default ordering
@@ -397,7 +408,21 @@ public class JDBCQuery<M extends Model> implements Query<M> {
             first = false;
           }
           Column col = order.getColumn();
-          sqlBuffer.append(alias.toString());
+          // the column may not belong to the model we are tyring to order
+          // it may belong to one of the parent, so we will have to
+          // choose a parent model map
+          Alias correctAlias = alias;
+          if (!alias.getModel().containsColumn(col)) {
+            Set<ModelMap> parents = alias.getModelMap().parents;
+            for(ModelMap parent: parents) {
+              if (parent.model.containsColumn(col)) {
+                correctAlias = alias;
+                break;
+              }
+            }
+          }
+
+          sqlBuffer.append(correctAlias.toString());
           sqlBuffer.append('.');
           sqlBuffer.append(col.getFieldName());
 
