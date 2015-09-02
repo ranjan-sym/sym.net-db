@@ -353,4 +353,9 @@ public class ModelStructure<T extends Model> {
     }
     return false;
   }
+
+  @Override
+  public String toString() {
+    return "ModelStructure[" + this.getTableName() + "]";
+  }
 }
