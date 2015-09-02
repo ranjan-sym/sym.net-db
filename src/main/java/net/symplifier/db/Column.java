@@ -19,6 +19,8 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
 
   private final Cache<T, ModelRow> cache;
 
+  private final T defaultValue;
+
   /* The model to which this column belongs */
   private ModelStructure<M> model;
   /* The position of the model on the hierarchy */
@@ -38,12 +40,13 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
   private int index;
 
   public Column(Class<T> valueType) {
-    this(valueType, new Builder());
+    this(valueType, new Builder<T>());
   }
 
-  public Column(Class<T> valueType, Builder builder) {
+  public Column(Class<T> valueType, Builder<T> builder) {
     this.valueType = valueType;
     this.fieldName = builder.getName();
+    this.defaultValue = builder.getDefaultValue();
 
     cache = builder.cacheLimit <= 0 ? null :
             CacheBuilder.newBuilder().maximumSize(builder.getCacheLimit()).build();
@@ -441,9 +444,11 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
   /**
    * Column builder
    */
-  public static class Builder {
+  public static class Builder<T> {
     private java.lang.String name = null;
     private int cacheLimit = 0;
+
+    private T defaultValue = null;
 
     /**
      * Set the name to be used for setting the column field name
@@ -465,6 +470,10 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
       return this;
     }
 
+    public Builder setDefaultValue(T value) {
+      this.defaultValue = value;
+      return this;
+    }
 
     /**
      * The field name for the column
@@ -480,6 +489,10 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
      */
     int getCacheLimit() {
       return cacheLimit;
+    }
+
+    T getDefaultValue() {
+      return defaultValue;
     }
   }
 
