@@ -40,7 +40,7 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
   private int index;
 
   public Column(Class<T> valueType) {
-    this(valueType, new Builder<T>());
+    this(valueType, new Builder<>());
   }
 
   public Column(Class<T> valueType, Builder<T> builder) {
@@ -53,6 +53,15 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
 
 
 
+  }
+
+  /**
+   * Retrieve the default value set for this column
+   *
+   * @return The default value set in the model
+   */
+  public T getDefaultValue() {
+    return defaultValue;
   }
 
   /**
@@ -168,7 +177,7 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
 
   @SafeVarargs
   public final Query.Filter<M> in(T ... values) {
-    return op(Query.FilterOp.in, new Query.ParameterList<T>(values).init(this));
+    return op(Query.FilterOp.in, new Query.ParameterList<>(values).init(this));
   }
 
   public Query.Filter<M> notEq(T value) {
@@ -180,15 +189,15 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
   }
 
   public Query.Filter<M> gt(T value) {
-    return gt(new Query.Parameter<T>(value));
+    return gt(new Query.Parameter<>(value));
   }
 
   public Query.Filter<M> ltEq(T value) {
-    return ltEq(new Query.Parameter<T>(value));
+    return ltEq(new Query.Parameter<>(value));
   }
 
   public Query.Filter<M> gtEq(T value) {
-    return gtEq(new Query.Parameter<T>(value));
+    return gtEq(new Query.Parameter<>(value));
   }
 
   private Query.Filter<M> op(Query.FilterOp op) {
@@ -216,7 +225,7 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
 
   @SafeVarargs
   public final Query.Filter<M> in(Query.Parameter<T> ... values) {
-    return op(Query.FilterOp.in, new Query.ParameterList<T>(values).init(this));
+    return op(Query.FilterOp.in, new Query.ParameterList<>(values).init(this));
   }
 
   public Query.Filter<M> like(Query.Parameter<T> value) {
@@ -259,7 +268,7 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
       super(Long.class);
     }
 
-    public Primary(Builder builder) {
+    public Primary(Builder<Long> builder) {
       super(Long.class, builder);
     }
 
@@ -283,10 +292,10 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
     private ModelStructure<T> referenceModel;
 
     public Reference(Class<T> referenceType) {
-      this(referenceType, new Builder());
+      this(referenceType, new Builder<>());
     }
 
-    public Reference(Class<T> referenceType, Builder builder) {
+    public Reference(Class<T> referenceType, Builder<Long> builder) {
       super(Long.class, builder);
       this.referenceType = referenceType;
     }
@@ -395,10 +404,10 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
           extends Reference<M, T> {
 
     public Interface(Class<T> interfaceType) {
-      this(interfaceType, new Builder());
+      this(interfaceType, new Builder<>());
     }
 
-    public Interface(Class<T> interfaceType, Builder builder) {
+    public Interface(Class<T> interfaceType, Builder<Long> builder) {
       super(interfaceType, builder);
     }
   }
@@ -424,10 +433,10 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
     private final Class<T> customType;
 
     public Custom(Class<T> customType, Class<G> genericType) {
-      this(customType, genericType, new Builder());
+      this(customType, genericType, new Builder<>());
     }
 
-    public Custom(Class<T> customType, Class<G> genericType, Builder builder) {
+    public Custom(Class<T> customType, Class<G> genericType, Builder<G> builder) {
       super(genericType, builder);
       this.customType = customType;
     }
@@ -502,7 +511,7 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
       super(java.lang.String.class);
     }
 
-    public Text(Builder builder) {
+    public Text(Builder<String> builder) {
       super(java.lang.String.class, builder);
     }
   }
@@ -512,7 +521,7 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
       super(java.lang.Integer.class);
     }
 
-    public Int(Builder builder) {
+    public Int(Builder<Integer> builder) {
       super(java.lang.Integer.class, builder);
     }
   }
@@ -524,7 +533,7 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
     }
 
 
-    public Bool(Builder builder) {
+    public Bool(Builder<Boolean> builder) {
       super(Boolean.class, builder);
     }
   }
@@ -535,7 +544,7 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
       super(java.lang.Double.class);
     }
 
-    public Double(Builder builder) {
+    public Double(Builder<java.lang.Double> builder) {
       super(java.lang.Double.class, builder);
     }
   }
@@ -546,7 +555,7 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
       super(java.util.Date.class);
     }
 
-    public Date(Builder builder) {
+    public Date(Builder<java.util.Date> builder) {
       super(java.util.Date.class, builder);
     }
   }
