@@ -255,6 +255,39 @@ public class ModelStructure<T extends Model> {
     return null;
   }
 
+  /**
+   * Creates an instance of the Model with default set
+   *
+   * @return ModelInstance
+   */
+  public T createDefault() {
+    T res = create();
+    // Go through all the columns and set them with the default
+    for(Column c:columns) {
+      Object def = c.getDefaultValue();
+      if (def != null) {
+        res.set(c, def);
+      }
+    }
+    // Also go through all the parent columns
+    for(ModelStructure p:parents) {
+      List<Column> cols = p.columns;
+      for(Column c:cols) {
+        Object def = c.getDefaultValue();
+        if (def != null) {
+          res.set(c, def);
+        }
+      }
+    }
+
+    return res;
+  }
+
+  /**
+   * Creates an instance of the Model with null for
+   * all the values even if column may have defaults set
+   * @return ModelInstance
+   */
   public T create() {
     return create(new ModelRow(this));
   }
