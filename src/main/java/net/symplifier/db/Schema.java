@@ -3,6 +3,7 @@ package net.symplifier.db;
 import net.symplifier.db.annotations.Table;
 import net.symplifier.db.exceptions.DatabaseException;
 
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
@@ -11,7 +12,10 @@ import java.util.*;
  * Created by ranjan on 7/27/15.
  */
 public class Schema {
-
+  public static final SimpleDateFormat ISO_8601_DATE_TIME
+          = new SimpleDateFormat("YYYY-MM-DD'T'HH:mm:ss'Z'") {{
+    this.setTimeZone(TimeZone.getTimeZone("UTC"));
+  }};
 
 
   public interface Generator {

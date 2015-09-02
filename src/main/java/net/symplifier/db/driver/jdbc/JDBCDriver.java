@@ -119,6 +119,23 @@ public abstract class JDBCDriver implements Driver, Session.Listener {
 
       if (!col.canBeNull()) {
         builder.append(" NOT NULL");
+        Object def = col.getDefaultValue();
+        if (def != null) {
+          builder.append(" DEFAULT ");
+          if (def instanceof Number) {
+            builder.append(def.toString());
+          } else if (def instanceof Date) {
+            builder.append('"');
+            builder.append(Schema.ISO_8601_DATE_TIME.format(def));
+            builder.append('"');
+          } else if (def instanceof Boolean) {
+            builder.append( ((Boolean)def ? 1 : 0) );
+          } else {
+            builder.append("'");
+            builder.append(col.getDefaultValue());
+            builder.append("'");
+          }
+        }
       }
     }
     builder.append("\r\n);");
