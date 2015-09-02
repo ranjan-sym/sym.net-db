@@ -180,7 +180,9 @@ public class ModelStructure<T extends Model> {
           }
 
           if (Reference.class.isAssignableFrom(f.getType())) {
-            references.put(f.getName(), (Reference)f.get(null));
+            Reference ref = (Reference) f.get(null);
+            ref.setRelationName(f.getName());
+            references.put(f.getName(), ref);
           }
         }
       } catch (IllegalAccessException e) {
