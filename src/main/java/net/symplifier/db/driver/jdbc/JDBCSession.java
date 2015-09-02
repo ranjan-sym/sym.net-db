@@ -55,7 +55,9 @@ public class JDBCSession implements DBSession {
   public <T extends Model> JDBCQuery<T>.Prepared prepare(Query<T> query) {
     JDBCQuery<T> q = (JDBCQuery<T>) query;
     try {
-      PreparedStatement stmt = connection.prepareStatement(q.getSQL());
+      String sql = q.getSQL();
+      LOGGER.debug("Executing SQL - " + sql);
+      PreparedStatement stmt = connection.prepareStatement(sql);
       if (stmt == null) {
         return null;
       } else {
@@ -64,7 +66,6 @@ public class JDBCSession implements DBSession {
         return prepared;
       }
     } catch(SQLException e) {
-      LOGGER.error(q.getSQL());
       throw new DatabaseException("Error while preparing sql", e);
     }
   }
