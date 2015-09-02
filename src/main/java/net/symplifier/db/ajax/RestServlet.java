@@ -165,84 +165,90 @@ public class RestServlet extends HttpServlet {
           // based on the column type
           Column col = model.getColumn(key);
           if (col != null) {
-            String val = source.optString(key);
-            if (val == null) {
+
+            // Handle null values
+            if (source.isNull(key)) {
               rec.set(col, null);
             } else {
-              Class type = col.getValueType();
-              if (type == String.class) {
-                rec.set(col, val);
-              } else if (type == Integer.class) {
-                try {
-                  rec.set(col, Integer.parseInt(val));
-                } catch(NumberFormatException e) {
-                  throw new Exception("Expected an integer for '"
-                          + model.getTableName() + "." + key
-                          + " but found '" + val + "'");
-                }
-              } else if (type == Long.class) {
-                try {
-                  rec.set(col, Long.parseLong(val));
-                } catch (NumberFormatException e) {
-                  throw new Exception("Expected a long for '"
-                          + model.getTableName() + "." + key
-                          + " but found '" + val + "'");
-                }
-              } else if (type == Float.class) {
-                try {
-                  rec.set(col, Float.parseFloat(val));
-                } catch(NumberFormatException e) {
-                  throw new Exception("Expected a float for '"
-                          + model.getTableName() + "." + key
-                          + " but found '" + val + "'");
-                }
-              } else if (type == Double.class) {
-                try {
-                  rec.set(col, Double.parseDouble(val));
-                } catch(NumberFormatException e) {
-                  throw new Exception("Expected a double for '"
-                          + model.getTableName() + "." + key
-                          + " but found '" + val + "'");
-                }
-              } else if (type == Boolean.class) {
-                // No exception is thrown by parseBoolean
-                rec.set(col, Boolean.parseBoolean(val));
-              } else if (type == Date.class) {
-                Date dateValue;
-                try {
-                  dateValue = new Date(LocalDate.parse(val).atTime(0, 0)
-                          .atZone(ZoneId.systemDefault())
-                          .toEpochSecond()*1000);
-                } catch(DateTimeParseException e1) {
+              String val = source.optString(key);
+              if (val == null) {
+                rec.set(col, null);
+              } else {
+                Class type = col.getValueType();
+                if (type == String.class) {
+                  rec.set(col, val);
+                } else if (type == Integer.class) {
                   try {
-                    dateValue = new Date(LocalDateTime.parse(val)
+                    rec.set(col, Integer.parseInt(val));
+                  } catch (NumberFormatException e) {
+                    throw new Exception("Expected an integer for '"
+                            + model.getTableName() + "." + key
+                            + " but found '" + val + "'");
+                  }
+                } else if (type == Long.class) {
+                  try {
+                    rec.set(col, Long.parseLong(val));
+                  } catch (NumberFormatException e) {
+                    throw new Exception("Expected a long for '"
+                            + model.getTableName() + "." + key
+                            + " but found '" + val + "'");
+                  }
+                } else if (type == Float.class) {
+                  try {
+                    rec.set(col, Float.parseFloat(val));
+                  } catch (NumberFormatException e) {
+                    throw new Exception("Expected a float for '"
+                            + model.getTableName() + "." + key
+                            + " but found '" + val + "'");
+                  }
+                } else if (type == Double.class) {
+                  try {
+                    rec.set(col, Double.parseDouble(val));
+                  } catch (NumberFormatException e) {
+                    throw new Exception("Expected a double for '"
+                            + model.getTableName() + "." + key
+                            + " but found '" + val + "'");
+                  }
+                } else if (type == Boolean.class) {
+                  // No exception is thrown by parseBoolean
+                  rec.set(col, Boolean.parseBoolean(val));
+                } else if (type == Date.class) {
+                  Date dateValue;
+                  try {
+                    dateValue = new Date(LocalDate.parse(val).atTime(0, 0)
                             .atZone(ZoneId.systemDefault())
-                            .toEpochSecond()*1000);
-                  } catch(DateTimeParseException e2) {
+                            .toEpochSecond() * 1000);
+                  } catch (DateTimeParseException e1) {
                     try {
-                      dateValue = new Date(ZonedDateTime
-                              .parse(val, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-                              .toEpochSecond()*1000);
-                    } catch(DateTimeParseException e3) {
+                      dateValue = new Date(LocalDateTime.parse(val)
+                              .atZone(ZoneId.systemDefault())
+                              .toEpochSecond() * 1000);
+                    } catch (DateTimeParseException e2) {
                       try {
-                        dateValue = new Date(LocalTime.parse(val).toSecondOfDay()*1000);
-                      } catch(DateTimeParseException e4) {
-                        throw new Exception("Expected a date/time for '"
-                                + model.getTableName() + "." + key
-                                + " but found '" + val + "'");
+                        dateValue = new Date(ZonedDateTime
+                                .parse(val, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+                                .toEpochSecond() * 1000);
+                      } catch (DateTimeParseException e3) {
+                        try {
+                          dateValue = new Date(LocalTime.parse(val).toSecondOfDay() * 1000);
+                        } catch (DateTimeParseException e4) {
+                          throw new Exception("Expected a date/time for '"
+                                  + model.getTableName() + "." + key
+                                  + " but found '" + val + "'");
+                        }
                       }
                     }
                   }
-                }
-                rec.set(col, dateValue);
-              } else if (type == byte[].class) {
-                try {
-                  rec.set(col, Base64.getDecoder().decode(val));
-                } catch(IllegalArgumentException e) {
-                  rec.set(col, val.getBytes(StandardCharsets.UTF_8));
+                  rec.set(col, dateValue);
+                } else if (type == byte[].class) {
+                  try {
+                    rec.set(col, Base64.getDecoder().decode(val));
+                  } catch (IllegalArgumentException e) {
+                    rec.set(col, val.getBytes(StandardCharsets.UTF_8));
 //                  throw new Exception("Expected a BLOB data encoded in BASE64 for '"
 //                          + model.getTableName() + "." + key
 //                          + " but found '" + val + "'");
+                  }
                 }
               }
             }
