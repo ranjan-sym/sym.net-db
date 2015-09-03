@@ -118,7 +118,13 @@ public class ModelInstance<M extends ModelInstance> implements Model {
           row = set.allRows[level] = s.getRow(implId);
           return (T)row.get(column.getIndex());
         } else {
-          row = set.allRows[level] = s.getRow(getId());
+          // if this is a new record then we know the value is not there
+          Long id = getId();
+          if (id == null) {
+            return null;
+          } else {
+            row = set.allRows[level] = s.getRow(id);
+          }
           return (T)row.get(column.getIndex());
         }
       } else {
