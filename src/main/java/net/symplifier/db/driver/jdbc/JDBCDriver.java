@@ -162,6 +162,34 @@ public abstract class JDBCDriver implements Driver, Session.Listener {
     return new JDBCQuery<>(this, builder);
   }
 
+  @Override
+  public void onSessionBegin(Session session) {
+    try {
+      JDBCSession s = new JDBCSession(this, dataSource.getConnection());
+      s.beginTransaction();
+      session.attach(schema, s);
+    } catch(SQLException e) {
+      throw new DatabaseException("Error while starting a new JDBC Session", e);
+    }
+
+  }
+
+  @Override
+  public void onSessionEnd(Session session) {
+    JDBCSession s = session.getAttachment(schema, JDBCSession.class);
+    s.close();
+  }
+
+  public void onSessionCommit(Session session) {
+    JDBCSession s = session.getAttachment(schema, JDBCSession.class);
+    s.commitTransaction();
+  }
+
+  public void onSessionRollback(Session session) {
+    JDBCSession s = session.getAttachment(schema, JDBCSession.class);
+    s.rollbackTransaction();
+  }
+
   /**
    * Mechanism to allow specific drivers to format the field name by enclosing
    * them within certain characters which might be different with different

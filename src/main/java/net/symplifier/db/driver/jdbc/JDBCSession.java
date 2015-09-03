@@ -14,7 +14,7 @@ import java.util.List;
  * and implement commit, rollback to updates the cache
  * Created by ranjan on 7/29/15.
  */
-public class JDBCSession implements DBSession {
+public class JDBCSession extends DBSession {
   public static final Logger LOGGER = LogManager.getLogger(JDBCSession.class);
 
   private final JDBCDriver driver;
@@ -30,7 +30,7 @@ public class JDBCSession implements DBSession {
     this.connection = connection;
   }
 
-  public void beginTransaction() {
+  public void doBeginTransaction() {
     try {
       this.connection.setAutoCommit(false);
     } catch (SQLException e) {
@@ -38,7 +38,7 @@ public class JDBCSession implements DBSession {
     }
   }
 
-  public void rollbackTransaction() {
+  public void doRollbackTransaction() {
     try {
       this.connection.rollback();
     } catch(SQLException e) {
@@ -46,7 +46,7 @@ public class JDBCSession implements DBSession {
     }
   }
 
-  public void commitTransaction() {
+  public void doCommitTransaction() {
     try {
       this.connection.commit();
     } catch(SQLException e) {
@@ -94,7 +94,7 @@ public class JDBCSession implements DBSession {
 
   @Override
   @SuppressWarnings("unchecked")
-  public void insert(ModelRow row) {
+  public void doInsert(ModelRow row) {
     ModelStructure structure = row.getStructure();
     SQLBuilder sql = new SQLBuilder();
 
@@ -136,7 +136,7 @@ public class JDBCSession implements DBSession {
 
   @Override
   @SuppressWarnings("unchecked")
-  public void update(ModelRow row, long id) {
+  public void doUpdate(ModelRow row, long id) {
     ModelStructure structure = row.getStructure();
     SQLBuilder updateSql = new SQLBuilder();
 
@@ -188,7 +188,7 @@ public class JDBCSession implements DBSession {
   }
 
   @Override
-  public void delete(Model model, long id) {
+  public void doDelete(Model model, long id) {
     ModelStructure structure = model.getStructure();
     StringBuilder sql = new StringBuilder();
     sql.append("DELETE FROM ");
@@ -206,7 +206,7 @@ public class JDBCSession implements DBSession {
   }
 
   @Override
-  public void deleteIntermediate(ModelStructure intermediate, Relation.HasMany ref, Model refSource, Model refTarget) {
+  public void doDeleteIntermediate(ModelStructure intermediate, Relation.HasMany ref, Model refSource, Model refTarget) {
     StringBuilder sql = new StringBuilder();
     sql.append("DELETE FROM ");
     sql.append(driver.formatFieldName(intermediate.getTableName()));
@@ -227,7 +227,7 @@ public class JDBCSession implements DBSession {
   }
 
   @Override
-  public void updateIntermediate(ModelStructure intermediate, Relation.HasMany ref, Model refSource, Model refTarget) {
+  public void doUpdateIntermediate(ModelStructure intermediate, Relation.HasMany ref, Model refSource, Model refTarget) {
     StringBuilder sql = new StringBuilder();
     sql.append("INSERT INTO ");
     sql.append(driver.formatFieldName(intermediate.getTableName()));
