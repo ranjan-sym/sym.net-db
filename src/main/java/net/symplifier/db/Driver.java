@@ -9,6 +9,13 @@ package net.symplifier.db;
 public interface Driver {
 
   /**
+   * Retrieve the schema to which this driver is associated
+   *
+   * @return The Schema instance
+   */
+  Schema getSchema();
+
+  /**
    * Provides the object that sets the value of the parameter in the query
    * depending upon its type
    *

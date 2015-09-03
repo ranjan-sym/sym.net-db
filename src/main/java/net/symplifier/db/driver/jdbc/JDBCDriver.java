@@ -27,6 +27,11 @@ public abstract class JDBCDriver implements Driver, Session.Listener {
     return PARAMETER_SETTERS.get(type);
   }
 
+  @Override
+  public Schema getSchema() {
+    return schema;
+  }
+
   public JDBCField getField(Class type) {
     return FIELDS.get(type);
   }
@@ -155,34 +160,6 @@ public abstract class JDBCDriver implements Driver, Session.Listener {
   @Override
   public <T extends Model> JDBCQuery<T> createQuery(Query.Builder<T> builder) {
     return new JDBCQuery<>(this, builder);
-  }
-
-  @Override
-  public void onSessionBegin(Session session) {
-    try {
-      JDBCSession s = new JDBCSession(this, dataSource.getConnection());
-      s.beginTransaction();
-      session.attach(schema, s);
-    } catch(SQLException e) {
-      throw new DatabaseException("Error while starting a new JDBC Session", e);
-    }
-
-  }
-
-  @Override
-  public void onSessionEnd(Session session) {
-    JDBCSession s = session.getAttachment(schema, JDBCSession.class);
-    s.close();
-  }
-
-  public void onSessionCommit(Session session) {
-    JDBCSession s = session.getAttachment(schema, JDBCSession.class);
-    s.commitTransaction();
-  }
-
-  public void onSessionRollback(Session session) {
-    JDBCSession s = session.getAttachment(schema, JDBCSession.class);
-    s.rollbackTransaction();
   }
 
   /**
