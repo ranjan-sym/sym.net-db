@@ -25,7 +25,7 @@ public class JDBCResult<T extends Model> implements Query.Result<T> {
     this.resultSet = resultSet;
 
     try {
-      eof = resultSet.next();
+      eof = !resultSet.next();
     } catch(SQLException e) {
       throw new DatabaseException("Error while moving through SQL result", e);
     }
@@ -61,7 +61,8 @@ public class JDBCResult<T extends Model> implements Query.Result<T> {
           // We found a new row
           res = r;
         }
-      } while (eof = resultSet.next());
+        eof = !resultSet.next();
+      } while (!eof);
     } catch(SQLException e) {
       throw new DatabaseException("Error while retrieving data from Query", e);
     }
