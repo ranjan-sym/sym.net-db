@@ -1,5 +1,6 @@
 package net.symplifier.db;
 
+import net.symplifier.db.exceptions.ModelException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -31,6 +32,7 @@ public class ModelInstance<M extends ModelInstance> implements Model {
   }
 
   private ModelSet set;
+  private volatile boolean locked;
 
   /**
    * Constructor used to create an instance of the Model. A newly created
@@ -42,6 +44,16 @@ public class ModelInstance<M extends ModelInstance> implements Model {
    */
   public ModelInstance() {
 
+  }
+
+  @Override
+  public void lock() {
+    this.locked = true;
+  }
+
+  @Override
+  public void unlock() {
+    this.locked = false;
   }
 
   /**
@@ -115,8 +127,16 @@ public class ModelInstance<M extends ModelInstance> implements Model {
     }
   }
 
+  private void checkLock() {
+    if (locked) {
+      throw new ModelException(this.getStructure().getType(), "Trying to change property of a locked model");
+    }
+  }
   @Override
   public <T> void set(Column<?, T> column, int level, T value) {
+    checkLock();
+
+
     ModelRow row;
     if (set == null) {
       init(Schema.get());
@@ -188,6 +208,8 @@ public class ModelInstance<M extends ModelInstance> implements Model {
      * @param record
      */
     public void add(V record) {
+      checkLock();
+
       Long id = record.getId();
       if (id == null) {
         newRecords.add(record);
@@ -205,6 +227,8 @@ public class ModelInstance<M extends ModelInstance> implements Model {
    * Clears all relational data
    */
   public void clearAll() {
+    checkLock();
+
     hasManyData.clear();
     referencedData.clear();
   }
@@ -217,6 +241,8 @@ public class ModelInstance<M extends ModelInstance> implements Model {
    * @param <V> The relationship target model type
    */
   public <U extends M, V extends Model> void clear(Reference<U, V> relation) {
+    checkLock();
+
     hasManyData.remove(relation);
     referencedData.remove(relation);
   }
@@ -374,6 +400,8 @@ public class ModelInstance<M extends ModelInstance> implements Model {
 
   @Override
   public <U extends Model, V extends Model> V add(Relation.HasMany<U, V> relation, V model) {
+    checkLock();
+
     // Just need to add this on the list
     RelationalData<V> d = (RelationalData<V>)hasManyData.get(relation);
     if (d == null) {

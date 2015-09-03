@@ -143,6 +143,18 @@ public interface Model {
    * @return JSONObject
    */
   JSONObject toJSON();
+
+  /**
+   * Keep the model in read only mode. Any attempt to change its property once
+   * it is locked should throw a ModelException
+   */
+  void lock();
+
+  /**
+   * Release the model from read only mode and allow it to be changed
+   */
+  void unlock();
+
   //TODO implement the following events through interceptor and not here
   default void onValidateSelect() {
 
