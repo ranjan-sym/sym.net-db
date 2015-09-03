@@ -101,9 +101,8 @@ public class RestServlet extends HttpServlet {
     // Save the record
     record.save();
 
-
-
-
+    response.setContentType("application/json");
+    response.getWriter().write(record.toJSON().toString());
   }
 
   private Model createRecord(ModelStructure model, JSONObject source) throws Exception {
