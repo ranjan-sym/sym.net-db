@@ -508,10 +508,12 @@ public class ModelInstance<M extends ModelInstance> implements Model {
     saving = false;
   }
 
+  @Override
   public JSONObject toJSON() {
     return toJSON(0);
   }
 
+  /* Helper method to create the JSON from a model instance recursively */
   private JSONObject toJSON(int level) {
     // In case of nested JSON creation, we will nest till 5th level
     // only, otherwise we may fall in the circular reference trap
