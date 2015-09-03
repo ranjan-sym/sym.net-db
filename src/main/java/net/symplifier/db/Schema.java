@@ -2,6 +2,8 @@ package net.symplifier.db;
 
 import net.symplifier.db.annotations.Table;
 import net.symplifier.db.exceptions.DatabaseException;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -280,6 +282,21 @@ public class Schema {
     deleteInterceptors.fireDelete(row.getStructure().getType(), row.getId());
   }
 
+
+  @SafeVarargs
+  public final JSONArray getDefaults(Class<? extends Model> ... classes) {
+    JSONArray res = new JSONArray();
+    for(Class<? extends Model> model:classes) {
+      ModelStructure m = this.getModelStructure(model);
+      if (m != null) {
+        JSONObject o = new JSONObject();
+        o.put("model", m.getTableName());
+        o.put("default", m.createDefault().toJSON());
+        res.put(o);
+      }
+    }
+    return res;
+  }
 
 //
 //  private final ThreadLocal<Session> session = new ThreadLocal<Session>() {
