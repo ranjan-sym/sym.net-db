@@ -296,6 +296,7 @@ public class ModelStructure<T extends Model> {
 
   public ModelRow getRow(long id) {
     try {
+      // TODO if the row is not found, then probably we will have to run a query to retrieve the record
       return rowCache.get(id, () -> new ModelRow(ModelStructure.this));
     } catch (ExecutionException e) {
       return null;
