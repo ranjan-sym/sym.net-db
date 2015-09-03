@@ -27,7 +27,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
   public class ModelMap {
     private final ModelStructure model;
     private final Map<Reference, ModelMap> relations;
-    private final Set<ModelMap> parents;
+    private final List<ModelMap> parents;
     private final QueryColumn[] columns;
     private Alias alias;
 
@@ -35,7 +35,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
       this.model = model;
       this.columns = new QueryColumn[model.getColumnCount()];
       this.relations = new LinkedHashMap<>();
-      this.parents = new LinkedHashSet<>();
+      this.parents = new ArrayList<>();
     }
 
     ModelInstance load(ResultSet rs, ModelInstance seed) throws SQLException {
@@ -58,7 +58,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
     ModelInstance recursiveLoad(ResultSet rs, ModelRow row, ModelInstance seed) throws SQLException {
 
       // Stage 1. Load rest of the columns of the model
-      for(int i=1; i<columns.length; ++i) {
+      for(int i=0; i<columns.length; ++i) {
         int idx = columns[i].index;
         Column col = columns[i].column;
         JDBCField field = fields[idx];
@@ -67,7 +67,18 @@ public class JDBCQuery<M extends Model> implements Query<M> {
       }
 
       // Stage 2. Load parent level columns if any
-      // TODO - Load parent level columns
+      for(int l=0; l<parents.size(); ++l) {
+        ModelMap parent = parents.get(l);
+        ModelRow parentRow  = parent.model.getRow(row.getId());
+        seed.setParentRow(l, parentRow);
+        for(int i=0; i<parent.columns.length; ++i) {
+          int idx = parent.columns[i].index;
+          Column col = parent.columns[i].column;
+          JDBCField field = fields[idx];
+          Object value = field.get(rs, idx+1);
+          parentRow.set(col.getIndex(), value);
+        }
+      }
 
       // Stage 3. Load implementation columns
       // TODO - Load implementation columns
@@ -421,7 +432,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
           // choose a parent model map
           Alias correctAlias = alias;
           if (!alias.getModel().containsColumn(col)) {
-            Set<ModelMap> parents = alias.getModelMap().parents;
+            List<ModelMap> parents = alias.getModelMap().parents;
             for(ModelMap parent: parents) {
               if (parent.model.containsColumn(col)) {
                 correctAlias = parent.alias;
