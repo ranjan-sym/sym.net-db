@@ -132,6 +132,18 @@ public class ModelInstance<M extends ModelInstance> implements Model {
       throw new ModelException(this.getStructure().getType(), "Trying to change property of a locked model");
     }
   }
+
+  /**
+   * Set's the parent row item while loading data
+   *
+   * @param l the level of the parent
+   * @param parentRow the row that is being loaded
+   */
+  public void setParentRow(int l, ModelRow parentRow) {
+    assert(set.allRows[l] == null);
+    set.allRows[l] = parentRow;
+  }
+
   @Override
   public <T> void set(Column<?, T> column, int level, T value) {
     checkLock();
@@ -411,6 +423,16 @@ public class ModelInstance<M extends ModelInstance> implements Model {
     return model;
   }
 
+  @Override
+  public <U extends Model, V extends Model> void remove(Relation.HasMany<U, V> relation, V model) {
+    checkLock();
+
+    RelationalData<V> d = (RelationalData<V>)hasManyData.get(relation);
+    if (d != null) {
+      d.newRecords.remove(model);
+    }
+  }
+
   /* A transient variable used to avoid circular reference */
   private transient boolean saving = false;
 
@@ -545,7 +567,7 @@ public class ModelInstance<M extends ModelInstance> implements Model {
   private JSONObject toJSON(int level) {
     // In case of nested JSON creation, we will nest till 5th level
     // only, otherwise we may fall in the circular reference trap
-    if (level == 5) {
+    if (level == 7) {
       return null;
     }
     JSONObject o = new JSONObject();

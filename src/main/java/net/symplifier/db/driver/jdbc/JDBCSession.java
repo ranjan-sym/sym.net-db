@@ -188,15 +188,15 @@ public class JDBCSession extends DBSession {
   }
 
   @Override
-  public void doDelete(Model model, long id) {
-    ModelStructure structure = model.getStructure();
+  public void doDelete(ModelRow row) {
+    ModelStructure structure = row.getStructure();
     StringBuilder sql = new StringBuilder();
     sql.append("DELETE FROM ");
     sql.append(driver.formatFieldName(structure.getTableName()));
     sql.append(" WHERE ");
     sql.append(structure.getPrimaryKeyField());
     sql.append('=');
-    sql.append(id);
+    sql.append(row.getId());
 
     try {
       connection.createStatement().execute(sql.toString());

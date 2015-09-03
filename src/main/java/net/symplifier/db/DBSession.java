@@ -16,7 +16,7 @@ public abstract class DBSession {
   // update the cache and handle the interceptors
   private final Set<ModelRow> insertedRows =new LinkedHashSet<>();
   private final Set<ModelRow> updatedRows = new LinkedHashSet<>();
-  private final Map<ModelStructure, Long> deletedRows = new LinkedHashMap<>();
+  private final Set<ModelRow> deletedRows = new LinkedHashSet<>();
 
   /**
    * Prepares a query for execution to retrieve data from the database
@@ -34,13 +34,13 @@ public abstract class DBSession {
     deletedRows.clear();
   }
 
-  public final void beginTransaction() {
+  public final void beginTransaction(Schema schema) {
     doBeginTransaction();
   }
 
   public abstract void doBeginTransaction();
 
-  public final void rollbackTransaction() {
+  public final void rollbackTransaction(Schema schema) {
     doRollbackTransaction();
     // The easier of the implementations, we just need to forget everything
     clearAll();
@@ -48,8 +48,59 @@ public abstract class DBSession {
 
   public abstract void doRollbackTransaction();
 
-  public final void commitTransaction() {
+  public final void commitTransaction(Schema schema) {
     doCommitTransaction();
+
+    // Once the transaction is completed, we need to update the cache
+    // First update all the inserted rows
+    Iterator<ModelRow> iterator = insertedRows.iterator();
+    while(iterator.hasNext()) {
+      ModelRow insertedRow = iterator.next();
+      // if this row has been deleted in the same session, no need
+      // to anything
+      if (deletedRows.contains(insertedRow)) {
+        deletedRows.remove(insertedRow);
+        iterator.remove();
+      } else {
+        insertedRow.getStructure().updateCache(insertedRow);
+      }
+    }
+
+    // Next up the rows that have been updated
+    iterator = updatedRows.iterator();
+    while(iterator.hasNext()) {
+      ModelRow updatedRow = iterator.next();
+      // if this row has been deleted in the same session, no need
+      // to update, as it will be deleted later
+      if (!deletedRows.contains(updatedRow)) {
+        updatedRow.getStructure().updateCache(updatedRow);
+      } else {
+        iterator.remove();
+      }
+    }
+
+    // Finally remove the deleted rows from the cache
+    for(ModelRow deletedRow:deletedRows) {
+      deletedRow.getStructure().removeFromCache(deletedRow);
+    }
+
+
+    // Now fire the interceptors
+    iterator = insertedRows.iterator();
+    while(iterator.hasNext()) {
+      schema.fireInsertInterceptors(iterator.next());
+    }
+
+    iterator = updatedRows.iterator();
+    while(iterator.hasNext()) {
+      schema.fireUpdateInterceptors(iterator.next());
+    }
+
+    iterator = deletedRows.iterator();
+    while(iterator.hasNext()) {
+      schema.fireDeleteInterceptors(iterator.next());
+    }
+
   }
 
   public abstract void doCommitTransaction();
@@ -73,6 +124,7 @@ public abstract class DBSession {
    * @param id The primary key id of the row
    */
   public final void update(ModelRow row, long id) {
+    // TODO The id field may not be needed here. Check the use cases and see if this could be removed
     doUpdate(row, id);
 
     updatedRows.add(row);
@@ -84,16 +136,15 @@ public abstract class DBSession {
   /**
    * Deletes a row from the database
    *
-   * @param model The model that needs to be deleted
-   * @param id The primary key id of the row
+   * @param row The model row that needs to be deleted
    */
-  public final void delete(Model model, long id) {
-    doDelete(model, id);
+  public final void delete(ModelRow row) {
+    doDelete(row);
 
-    deletedRows.put(model.getStructure(), id);
+    deletedRows.add(row);
   }
 
-  public abstract void doDelete(Model model, long id);
+  public abstract void doDelete(ModelRow row);
 
   /**
    * Updates the intermediate table (arising from HasMany join for Many-Many relationship)

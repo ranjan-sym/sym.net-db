@@ -393,4 +393,23 @@ public class ModelStructure<T extends Model> {
   public String toString() {
     return "ModelStructure[" + this.getTableName() + "]";
   }
+
+  /**
+   * Update the cache with the updated Row
+   * @param updatedRow
+   */
+  public void updateCache(ModelRow updatedRow) {
+    // TODO Dilemma here, what do do during the update
+    // either replace the existing model row with the new row
+    // or update all the properties in the model row
+    rowCache.put(updatedRow.getId(), updatedRow);
+  }
+
+  /**
+   * Remove a record from the cache
+   * @param deletedRow
+   */
+  public void removeFromCache(ModelRow deletedRow) {
+    rowCache.invalidate(deletedRow.getId());
+  }
 }

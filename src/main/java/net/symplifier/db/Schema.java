@@ -18,6 +18,7 @@ public class Schema {
   }};
 
 
+
   public interface Generator {
 
     Driver buildDriver(Schema schema);
@@ -193,6 +194,92 @@ public class Schema {
     ModelStructure<T> s = (ModelStructure<T>)allModels.get(modelClass);
     return s.get(id);
   }
+
+
+  // interceptor implementation
+  private class InterceptorMap {
+    private Map<Class, Set<Interceptor>> interceptors = new HashMap<>();
+    public void add(Class clazz, Interceptor interceptor) {
+      Set<Interceptor> set = interceptors.get(clazz);
+      if (set == null) {
+        set = new HashSet<>();
+        interceptors.put(clazz, set);
+      }
+
+      if (!set.contains(interceptor)) {
+        set.add(interceptor);
+      }
+    }
+
+    public void remove(Class clazz, Interceptor interceptor) {
+      Set<Interceptor> set = interceptors.get(clazz);
+      if (set != null) {
+        set.remove(interceptor);
+      }
+    }
+
+    public void fireInsert(Class clazz, long id) {
+      Set<Interceptor> set = interceptors.get(clazz);
+      if (set != null) {
+        for(Interceptor i:set) {
+          i.onInsert(Schema.this, clazz, id);
+        }
+      }
+    }
+
+    public void fireUpdate(Class clazz, long id) {
+      Set<Interceptor> set = interceptors.get(clazz);
+      if (set != null) {
+        for(Interceptor i:set) {
+          i.onUpdate(Schema.this, clazz, id);
+        }
+      }
+    }
+
+    public void fireDelete(Class clazz, long id) {
+      Set<Interceptor> set = interceptors.get(clazz);
+      if (set != null) {
+        for(Interceptor i:set) {
+          i.onDelete(Schema.this, clazz, id);
+        }
+      }
+    }
+  }
+
+  private InterceptorMap insertInterceptors = new InterceptorMap();
+  private InterceptorMap updateInterceptors = new InterceptorMap();
+  private InterceptorMap deleteInterceptors = new InterceptorMap();
+
+  public <T extends Model> void addInterceptor(Class<T> clazz, Interceptor interceptor, int flags) {
+    if ( (flags & Interceptor.INSERT) != 0) {
+      insertInterceptors.add(clazz, interceptor);
+    }
+    if ( (flags & Interceptor.UPDATE) != 0) {
+      updateInterceptors.add(clazz, interceptor);
+    }
+    if ( (flags & Interceptor.DELETE) != 0) {
+      deleteInterceptors.add(clazz, interceptor);
+    }
+  }
+
+  public <T extends Model> void removeInterceptor(Class<T> clazz, Interceptor interceptor) {
+    insertInterceptors.remove(clazz, interceptor);
+    updateInterceptors.remove(clazz, interceptor);
+    deleteInterceptors.remove(clazz, interceptor);
+  }
+
+  public void fireInsertInterceptors(ModelRow row) {
+    insertInterceptors.fireInsert(row.getStructure().getType(), row.getId());
+  }
+
+  public void fireUpdateInterceptors(ModelRow row) {
+    updateInterceptors.fireUpdate(row.getStructure().getType(), row.getId());
+  }
+
+  public void fireDeleteInterceptors(ModelRow row) {
+    deleteInterceptors.fireDelete(row.getStructure().getType(), row.getId());
+  }
+
 
 //
 //  private final ThreadLocal<Session> session = new ThreadLocal<Session>() {

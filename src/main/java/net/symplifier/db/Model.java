@@ -88,7 +88,27 @@ public interface Model {
   <U extends Model, V extends Model> void setReference(Column.Reference<U, V> column, V model);
 
 
+  /**
+   * Adds the model as a child to this relationship
+   *
+   * @param relation
+   * @param model
+   * @param <U>
+   * @param <V>
+   * @return
+   */
   <U extends Model, V extends Model> V add(Relation.HasMany<U, V> relation, V model);
+
+  /**
+   * Removes the model as a child from this relationship
+   *
+   * @param relation
+   * @param model
+   * @param <U>
+   * @param <V>
+   */
+  <U extends Model, V extends Model> void remove(Relation.HasMany<U, V> relation, V model);
+
 
   /**
    * Set the value of the given column of this model. When a value

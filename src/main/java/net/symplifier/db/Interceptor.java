@@ -6,11 +6,11 @@ package net.symplifier.db;
 public interface Interceptor {
   int INSERT = 1;
   int UPDATE = 2;
-  int DELETE = 3;
+  int DELETE = 4;
 
-  void onInsert(Class<? extends Model> model, long id);
+  void onInsert(Schema schema, Class<? extends Model> model, long id);
 
-  void onDelete(Class<? extends Model> model, long id);
+  void onDelete(Schema schema, Class<? extends Model> model, long id);
 
-  void onUpdate(Class<? extends Model> model, long id, Column column);
+  void onUpdate(Schema schema, Class<? extends Model> model, long id);
 }
