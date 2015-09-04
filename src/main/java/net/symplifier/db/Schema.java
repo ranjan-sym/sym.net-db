@@ -333,7 +333,7 @@ public class Schema {
   }
 
   @SafeVarargs
-  public final JSONArray getDefaults(Class<? extends Model> ... classes) {
+  public final JSONArray getMetaData(Class<? extends Model>... classes) {
     JSONArray res = new JSONArray();
     for(Class<? extends Model> model:classes) {
       ModelStructure m = this.getModelStructure(model);
@@ -341,6 +341,12 @@ public class Schema {
         JSONObject o = new JSONObject();
         o.put("model", m.getTableName());
         o.put("default", m.createDefault().toJSON());
+        JSONObject r = new JSONObject();
+        Collection<Reference> allRelations = m.getAllRelations();
+        for(Reference ref:allRelations) {
+          r.put(ref.getRelationName(), ref.getTargetType().getTableName());
+        }
+        o.put("relations", r);
         res.put(o);
       }
     }
