@@ -424,6 +424,7 @@ public class ModelInstance<M extends ModelInstance> implements Model {
     RelationalData<V> d = (RelationalData<V>)hasManyData.get(relation);
     if (d == null) {
       d = new RelationalData<>();
+      hasManyData.put(relation, d);
     }
     d.newRecords.add(model);
     return model;
