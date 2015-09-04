@@ -17,6 +17,8 @@ public abstract class DBSession {
   private final Set<ModelRow> insertedRows =new LinkedHashSet<>();
   private final Set<ModelRow> updatedRows = new LinkedHashSet<>();
   private final Set<ModelRow> deletedRows = new LinkedHashSet<>();
+  private final Set<Model> updatedInstances = new LinkedHashSet<>();
+  private final Set<Model> deletedInstances = new LinkedHashSet<>();
 
   /**
    * Prepares a query for execution to retrieve data from the database
@@ -86,20 +88,18 @@ public abstract class DBSession {
 
 
     // Now fire the interceptors
-    iterator = insertedRows.iterator();
-    while(iterator.hasNext()) {
-      schema.fireInsertInterceptors(iterator.next());
+    Iterator<Model> modelIterator;
+    modelIterator = updatedInstances.iterator();
+    while(modelIterator.hasNext()) {
+      schema.fireUpdatedInterceptors(modelIterator.next());
     }
 
-    iterator = updatedRows.iterator();
-    while(iterator.hasNext()) {
-      schema.fireUpdateInterceptors(iterator.next());
+    modelIterator = deletedInstances.iterator();
+    while(modelIterator.hasNext()) {
+      schema.fireDeletedInterceptors(modelIterator.next());
     }
 
-    iterator = deletedRows.iterator();
-    while(iterator.hasNext()) {
-      schema.fireDeleteInterceptors(iterator.next());
-    }
+    clearAll();
 
   }
 
@@ -132,6 +132,27 @@ public abstract class DBSession {
 
 
   public abstract void doUpdate(ModelRow row, long id);
+
+  /**
+   * Method that is invoked by the ModelInstance after the instance
+   * has been saved. This method makes sure that the interceptors are informed
+   * once the model is committed into the database
+   * @param model
+   */
+  public void saved(Model model) {
+    this.updatedInstances.add(model);
+  }
+
+  /**
+   * Method that is invoked by the ModelInstance after the instance has
+   * been saved. This method makes sure that the interceptors are informed
+   * once the model is committed into the database
+   *
+   * @param model
+   */
+  public void deleted(Model model) {
+    this.deletedInstances.add(model);
+  }
 
   /**
    * Deletes a row from the database

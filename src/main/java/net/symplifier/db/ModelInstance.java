@@ -443,15 +443,16 @@ public class ModelInstance<M extends ModelInstance> implements Model {
   /* A transient variable used to avoid circular reference */
   private transient boolean saving = false;
 
-  public void save(DBSession session) {
+  @Override
+  public boolean save(DBSession session) {
     // Hopefully we haven't reached here via circular reference in a relationship
     if (saving) {
-      return;
+      return false;
     }
 
     // Only go through the hardship if any modification has been done
     if (!isModified()) {
-      return;
+      return false;
     }
 
     // Set flag to mark the beginning of the process
@@ -563,6 +564,7 @@ public class ModelInstance<M extends ModelInstance> implements Model {
     }
 
     saving = false;
+    return true;
   }
 
   @Override

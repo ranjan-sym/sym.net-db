@@ -150,10 +150,31 @@ public interface Model {
    */
   Long getId();
 
-  void save(DBSession session);
+  /**
+   * Save the model on the given session. This method returns true
+   * if this operation actually affected the persistent system below
+   * and return false otherwise, which means that the model record
+   * need not be saved.
+   *
+   * @param session The session to work on
+   * @return {@code true} if the database was affected otherwise {@code false}
+   */
+  boolean save(DBSession session);
 
+  /**
+   * Save the model on the default session
+   */
   default void save() {
-    save(Session.get(Schema.get(), DBSession.class));
+    Schema schema = Schema.get();
+    DBSession session = Session.get(schema, DBSession.class);
+    save(session);
+
+    // Let the session know that this instance was saved on this session
+    // This has to be done here and not from save(DBSession) since that
+    // method would be called recursively and that will create a number
+    // of additional updated events. Need to check though if that would
+    // be something of a desired process or if this would be
+    session.saved(this);
   }
 
 

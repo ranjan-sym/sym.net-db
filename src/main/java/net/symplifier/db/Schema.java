@@ -200,88 +200,137 @@ public class Schema {
 
   // interceptor implementation
   private class InterceptorMap {
-    private Map<Class, Set<Interceptor>> interceptors = new HashMap<>();
+    private Map<Class, Map<Integer, Set<Interceptor>>> interceptors = new HashMap<>();
+
     public void add(Class clazz, Interceptor interceptor) {
-      Set<Interceptor> set = interceptors.get(clazz);
-      if (set == null) {
-        set = new HashSet<>();
-        interceptors.put(clazz, set);
+      Map<Integer, Set<Interceptor>> typedInterceptor =
+              interceptors.get(clazz);
+
+      if (typedInterceptor == null) {
+        typedInterceptor = new HashMap<>();
+        interceptors.put(clazz, typedInterceptor);
       }
 
-      if (!set.contains(interceptor)) {
-        set.add(interceptor);
+      int type = interceptor.getType();
+      int iType = 1;
+      while(type > 0) {
+        // if the bit is set
+        if ((type & 1) == 1) {
+          // check the type and for each bit add to the a different set
+          Set<Interceptor> set = typedInterceptor.get(iType);
+          if (set == null) {
+            set = new LinkedHashSet<>();
+            typedInterceptor.put(iType, set);
+          }
+
+          if (!set.contains(interceptor)) {
+            set.add(interceptor);
+          }
+        }
+
+        // move to the next bit
+        type >>= 1;
+        iType <<= 1;
+      }
+    }
+
+    public void remove(Interceptor interceptor) {
+      // Search and remove from all
+      for(Map<Integer, Set<Interceptor>> typedInterceptor:interceptors.values()) {
+        for(Set<Interceptor> set:typedInterceptor.values()) {
+          set.remove(interceptor);
+        }
       }
     }
 
     public void remove(Class clazz, Interceptor interceptor) {
-      Set<Interceptor> set = interceptors.get(clazz);
-      if (set != null) {
+      Map<Integer, Set<Interceptor>> typedInterceptor =
+              interceptors.get(clazz);
+
+      if (typedInterceptor == null) {
+        // Since none found, no need to go further
+        return;
+      }
+
+      for(Set<Interceptor> set: typedInterceptor.values()) {
         set.remove(interceptor);
       }
     }
 
-    public void fireInsert(Class clazz, long id) {
-      Set<Interceptor> set = interceptors.get(clazz);
-      if (set != null) {
-        for(Interceptor i:set) {
-          i.onInsert(Schema.this, clazz, id);
-        }
+    public void fire(Class clazz, Integer type, Object data) {
+      Map<Integer, Set<Interceptor>> typedInterceptor =
+              interceptors.get(clazz);
+      if (typedInterceptor == null) {
+        // No interceptors available to fire anything
+        return;
       }
-    }
 
-    public void fireUpdate(Class clazz, long id) {
-      Set<Interceptor> set = interceptors.get(clazz);
-      if (set != null) {
-        for(Interceptor i:set) {
-          i.onUpdate(Schema.this, clazz, id);
-        }
+      Set<Interceptor> set = typedInterceptor.get(type);
+      if (set == null) {
+        // No interceptors available to fire anything
+        return;
       }
-    }
 
-    public void fireDelete(Class clazz, long id) {
-      Set<Interceptor> set = interceptors.get(clazz);
-      if (set != null) {
-        for(Interceptor i:set) {
-          i.onDelete(Schema.this, clazz, id);
+      // finally fire the interceptor event
+      for(Interceptor interceptor:set) {
+        switch(type) {
+          case Interceptor.UPDATED:
+            assert(data instanceof Model);
+            ((Interceptor.Updated)interceptor).onUpdated(Schema.this, (Model)data);
+            break;
+          case Interceptor.DELETED:
+            assert(data instanceof Model);
+            ((Interceptor.Deleted)interceptor).onDeleted(Schema.this, (Model)data);
+            break;
+          case Interceptor.INSERT:
+            assert(data instanceof ModelRow);
+            ((Interceptor.Insert)interceptor).onInsert(Schema.this, (ModelRow)data);
+            break;
+          case Interceptor.UPDATE:
+            assert(data instanceof ModelRow);
+            ((Interceptor.Update)interceptor).onUpdate(Schema.this, (ModelRow)data);
+            break;
+          case Interceptor.DELETE:
+            assert(data instanceof ModelRow);
+            ((Interceptor.Delete)interceptor).onDelete(Schema.this, (ModelRow)data);
         }
       }
     }
   }
 
-  private InterceptorMap insertInterceptors = new InterceptorMap();
-  private InterceptorMap updateInterceptors = new InterceptorMap();
-  private InterceptorMap deleteInterceptors = new InterceptorMap();
+  private final InterceptorMap interceptorMap = new InterceptorMap();
 
-  public <T extends Model> void addInterceptor(Class<T> clazz, Interceptor interceptor, int flags) {
-    if ( (flags & Interceptor.INSERT) != 0) {
-      insertInterceptors.add(clazz, interceptor);
-    }
-    if ( (flags & Interceptor.UPDATE) != 0) {
-      updateInterceptors.add(clazz, interceptor);
-    }
-    if ( (flags & Interceptor.DELETE) != 0) {
-      deleteInterceptors.add(clazz, interceptor);
-    }
+  public <T extends Model> void addInterceptor(Class<T> clazz, Interceptor interceptor) {
+    interceptorMap.add(clazz, interceptor);
   }
 
   public <T extends Model> void removeInterceptor(Class<T> clazz, Interceptor interceptor) {
-    insertInterceptors.remove(clazz, interceptor);
-    updateInterceptors.remove(clazz, interceptor);
-    deleteInterceptors.remove(clazz, interceptor);
+    interceptorMap.remove(clazz, interceptor);
+  }
+
+  public void removeInterceptor(Interceptor interceptor) {
+    interceptorMap.remove(interceptor);
   }
 
   public void fireInsertInterceptors(ModelRow row) {
-    insertInterceptors.fireInsert(row.getStructure().getType(), row.getId());
+    interceptorMap.fire(row.getStructure().getType(), Interceptor.INSERT, row);
   }
 
   public void fireUpdateInterceptors(ModelRow row) {
-    updateInterceptors.fireUpdate(row.getStructure().getType(), row.getId());
+    interceptorMap.fire(row.getStructure().getType(), Interceptor.UPDATE, row);
   }
 
   public void fireDeleteInterceptors(ModelRow row) {
-    deleteInterceptors.fireDelete(row.getStructure().getType(), row.getId());
+    interceptorMap.fire(row.getStructure().getType(), Interceptor.DELETE, row);
   }
 
+  public void fireUpdatedInterceptors(Model model) {
+    interceptorMap.fire(model.getStructure().getType(), Interceptor.UPDATED, model);
+  }
+
+  public void fireDeletedInterceptors(Model model) {
+    interceptorMap.fire(model.getStructure().getType(), Interceptor.DELETED, model);
+  }
 
   @SafeVarargs
   public final JSONArray getDefaults(Class<? extends Model> ... classes) {
