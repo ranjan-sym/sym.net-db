@@ -566,12 +566,7 @@ public class ModelInstance<M extends ModelInstance> implements Model {
   }
 
   @Override
-  public JSONObject toJSON() {
-    return toJSON(0);
-  }
-
-  /* Helper method to create the JSON from a model instance recursively */
-  private JSONObject toJSON(int level) {
+  public JSONObject toJSON(int level) {
     // In case of nested JSON creation, we will nest till 5th level
     // only, otherwise we may fall in the circular reference trap
     if (level == 7) {
@@ -609,7 +604,8 @@ public class ModelInstance<M extends ModelInstance> implements Model {
     // now the references
     // first is the BelongsTo reference
     for(Map.Entry<Column.Reference, Model> entry:this.referencedData.entrySet()) {
-      updateJSON(o, entry.getKey().getRelationName(), entry.getValue().toJSON());
+      updateJSON(o, entry.getKey().getRelationName(),
+              entry.getValue().toJSON(level+1));
     }
     // Next is the has many relation
     for(Map.Entry<Relation.HasMany, RelationalData> entry: this.hasManyData.entrySet()) {
@@ -617,7 +613,7 @@ public class ModelInstance<M extends ModelInstance> implements Model {
 
       List<Model> list = entry.getValue().getAll();
       for(Model data:list) {
-        ar.put(data.toJSON());
+        ar.put(data.toJSON(level + 1));
       }
 
       updateJSON(o, entry.getKey().getRelationName(), ar);

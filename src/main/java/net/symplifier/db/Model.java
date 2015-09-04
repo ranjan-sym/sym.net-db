@@ -157,12 +157,18 @@ public interface Model {
   }
 
 
+  default JSONObject toJSON() {
+    return toJSON(0);
+  }
   /**
    * Convert Model to JSON
    *
+   * @param level The recursion depth at which the conversion is taking place
+   *              should be incremented by one during recursive loading. Start
+   *              with 0.
    * @return JSONObject
    */
-  JSONObject toJSON();
+  JSONObject toJSON(int level);
 
   /**
    * Keep the model in read only mode. Any attempt to change its property once
