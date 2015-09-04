@@ -344,7 +344,15 @@ public class Schema {
         JSONObject r = new JSONObject();
         Collection<Reference> allRelations = m.getAllRelations();
         for(Reference ref:allRelations) {
-          r.put(ref.getRelationName(), ref.getTargetType().getTableName());
+          // if the relationship is of type HasMany then encapsulate the
+          // reference table name within [] in JSON
+          if (ref instanceof Relation.HasMany) {
+            JSONArray t = new JSONArray();
+            t.put(ref.getTargetType().getTableName());
+            r.put(ref.getRelationName(), t);
+          } else {
+            r.put(ref.getRelationName(), ref.getTargetType().getTableName());
+          }
         }
         o.put("relations", r);
         res.put(o);
