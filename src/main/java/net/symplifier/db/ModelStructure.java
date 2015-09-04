@@ -368,8 +368,12 @@ public class ModelStructure<T extends Model> {
    * @param name Name of the relationship (camelCase)
    * @return The Relation object or {@code null}
    */
-  public Reference getReference(String name) {
+  public Reference getRelation(String name) {
     return references.get(name);
+  }
+
+  public Collection<Reference> getAllRelations() {
+    return references.values();
   }
 
   /**
