@@ -2,6 +2,7 @@ package net.symplifier.db.driver.jdbc;
 
 import net.symplifier.db.*;
 import net.symplifier.db.exceptions.DatabaseException;
+import org.json.JSONArray;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -83,6 +84,17 @@ public class JDBCResult<T extends Model> implements Query.Result<T> {
     return res;
   }
 
+  @Override
+  public JSONArray toJSON() {
+    JSONArray res = new JSONArray();
+
+    Model m = null;
+    while ((m = this.next()) != null) {
+      res.put(m.toJSON());
+    }
+
+    return res;
+  }
 
 
 

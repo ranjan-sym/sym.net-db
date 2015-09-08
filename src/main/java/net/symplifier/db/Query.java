@@ -1,6 +1,7 @@
 package net.symplifier.db;
 
 import net.symplifier.core.application.Session;
+import org.json.JSONArray;
 
 import java.util.*;
 
@@ -94,6 +95,8 @@ public interface Query<T extends Model> {
     List<T> toList();
 
     T next();
+
+    JSONArray toJSON();
 
   }
 
