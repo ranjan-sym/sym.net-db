@@ -21,6 +21,8 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
 
   private final T defaultValue;
 
+  private final boolean canBeNull;
+
   /* The model to which this column belongs */
   private ModelStructure<M> model;
   /* The position of the model on the hierarchy */
@@ -47,6 +49,7 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
     this.valueType = valueType;
     this.fieldName = builder.getName();
     this.defaultValue = builder.getDefaultValue();
+    this.canBeNull = builder.canBeNull();
 
     cache = builder.cacheLimit <= 0 ? null :
             CacheBuilder.newBuilder().maximumSize(builder.getCacheLimit()).build();
@@ -262,7 +265,7 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
   }
 
   public boolean canBeNull() {
-    return false;
+    return canBeNull;
   }
 
 
@@ -479,7 +482,7 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
   public static class Builder<T> {
     private java.lang.String name = null;
     private int cacheLimit = 0;
-
+    private boolean allowNull = false;
     private T defaultValue = null;
 
     /**
@@ -507,6 +510,12 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
       return this;
     }
 
+
+    public Builder allowNull() {
+      this.allowNull = true;
+      return this;
+    }
+
     /**
      * The field name for the column
      * @return string
@@ -525,6 +534,10 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
 
     T getDefaultValue() {
       return defaultValue;
+    }
+
+    public boolean canBeNull() {
+      return allowNull;
     }
   }
 
