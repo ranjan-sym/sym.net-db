@@ -3,6 +3,8 @@ package net.symplifier.db;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import net.symplifier.db.annotations.Table;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -416,5 +418,39 @@ public class ModelStructure<T extends Model> {
    */
   public void removeFromCache(ModelRow deletedRow) {
     rowCache.invalidate(deletedRow.getId());
+  }
+
+
+  private JSONObject  metaData;       // MetaData Cache to avoid rebuilding
+
+  public JSONObject getMetaData() {
+    if (metaData != null) {
+      return metaData;
+    }
+
+    metaData = new JSONObject();
+    metaData.put("model", this.getTableName());
+    metaData.put("default", this.createDefault().toJSON());
+    JSONObject r = new JSONObject();
+    Collection<Reference> allRelations = this.getAllRelations();
+    for(Reference ref:allRelations) {
+      // if the relationship is of type HasMany then encapsulate the
+      // reference table name within [] in JSON
+      JSONArray rel = new JSONArray();
+      if (ref instanceof Relation.HasMany) {
+        rel.put(ref.getTargetType().getTableName());
+        ModelStructure intermediate = ref.getIntermediateTable();
+        rel.put(intermediate == null?null:intermediate.getTableName());
+        rel.put(ref.getTargetFieldName());
+        rel.put(ref.getSourceFieldName());
+      } else {
+        rel.put(ref.getTargetType().getTableName());
+        rel.put(ref.getSourceFieldName());
+      }
+      r.put(ref.getRelationName(), rel);
+    }
+    metaData.put("relations", r);
+
+    return metaData;
   }
 }

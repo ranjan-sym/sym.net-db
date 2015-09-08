@@ -338,24 +338,7 @@ public class Schema {
     for(Class<? extends Model> model:classes) {
       ModelStructure m = this.getModelStructure(model);
       if (m != null) {
-        JSONObject o = new JSONObject();
-        o.put("model", m.getTableName());
-        o.put("default", m.createDefault().toJSON());
-        JSONObject r = new JSONObject();
-        Collection<Reference> allRelations = m.getAllRelations();
-        for(Reference ref:allRelations) {
-          // if the relationship is of type HasMany then encapsulate the
-          // reference table name within [] in JSON
-          if (ref instanceof Relation.HasMany) {
-            JSONArray t = new JSONArray();
-            t.put(ref.getTargetType().getTableName());
-            r.put(ref.getRelationName(), t);
-          } else {
-            r.put(ref.getRelationName(), ref.getTargetType().getTableName());
-          }
-        }
-        o.put("relations", r);
-        res.put(o);
+        res.put(m.getMetaData());
       }
     }
     return res;
