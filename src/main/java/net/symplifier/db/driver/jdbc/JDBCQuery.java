@@ -90,15 +90,18 @@ public class JDBCQuery<M extends Model> implements Query<M> {
         int idx = m.columns[0].index;
         JDBCField field = fields[idx];
         Long id = (Long)field.get(rs, idx+1);
-
-        ModelInstance child = seed.get(ref, id);
-        if (child == null) {
-          ModelRow newRow = m.model.getRow(id);
-          child = (ModelInstance)m.model.create(newRow);
-          seed.set(ref, id, child);
-          m.recursiveLoad(rs, newRow, child);
-        } else {
-          m.recursiveLoad(rs, child.getPrimaryRow(), child);
+        // There may not be any referenced record specially due
+        // to the left join
+        if (id != null) {
+          ModelInstance child = seed.get(ref, id);
+          if (child == null) {
+            ModelRow newRow = m.model.getRow(id);
+            child = (ModelInstance) m.model.create(newRow);
+            seed.set(ref, id, child);
+            m.recursiveLoad(rs, newRow, child);
+          } else {
+            m.recursiveLoad(rs, child.getPrimaryRow(), child);
+          }
         }
       }
 
