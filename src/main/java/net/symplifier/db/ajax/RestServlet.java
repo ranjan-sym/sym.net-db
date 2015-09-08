@@ -1,6 +1,5 @@
 package net.symplifier.db.ajax;
 
-import net.symplifier.core.application.Session;
 import net.symplifier.db.*;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
@@ -12,7 +11,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -124,7 +122,7 @@ public class RestServlet extends HttpServlet {
       Object res = source.get(key);
       if (arr != null) {
         // We expect a relationship here
-        Reference ref = model.getReference(key);
+        Reference ref = model.getRelation(key);
 
         if (!(ref instanceof Relation.HasMany)) {
           throw new Exception("The data for relationship '"
@@ -148,7 +146,7 @@ public class RestServlet extends HttpServlet {
       } else {
         JSONObject obj = source.optJSONObject(key);
         if (obj != null) {
-          Reference ref = model.getReference(key);
+          Reference ref = model.getRelation(key);
           // Make sure the reference is a Column.Reference
           if (!(ref instanceof Column.Reference)) {
             throw new Exception("The data for relationship '"
