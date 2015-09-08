@@ -148,9 +148,9 @@ public abstract class JDBCDriver implements Driver, Session.Listener {
     String sql = builder.toString();
     System.out.println(sql);
 
-    try {
-      Connection conn = dataSource.getConnection();
+    try (Connection conn = dataSource.getConnection()) {
       conn.createStatement().execute(sql);
+      conn.close();
     } catch(SQLException e) {
       throw new DatabaseException("Error while executing CREATE DDL", e);
     }
