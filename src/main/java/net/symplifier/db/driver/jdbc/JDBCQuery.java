@@ -94,11 +94,11 @@ public class JDBCQuery<M extends Model> implements Query<M> {
         ModelInstance child = seed.get(ref, id);
         if (child == null) {
           ModelRow newRow = m.model.getRow(id);
-          child = (ModelInstance)m.model.create(row);
+          child = (ModelInstance)m.model.create(newRow);
           seed.set(ref, id, child);
-          recursiveLoad(rs, newRow, child);
+          m.recursiveLoad(rs, newRow, child);
         } else {
-          recursiveLoad(rs, child.getPrimaryRow(), child);
+          m.recursiveLoad(rs, child.getPrimaryRow(), child);
         }
       }
 
