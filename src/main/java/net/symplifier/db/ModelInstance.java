@@ -356,7 +356,12 @@ public class ModelInstance<M extends ModelInstance> implements Model {
       referencedData.put((Column.Reference)ref, model);
     } else if (ref instanceof Relation.HasMany) {
       RelationalData d = hasManyData.get(ref);
-      d.add(model);
+      if (d == null) {
+        d = new RelationalData();
+        hasManyData.put((Relation.HasMany)ref, d);
+      }
+      d.existingRecords.put(id, model);
+      //d.add(model);
     }
   }
 
