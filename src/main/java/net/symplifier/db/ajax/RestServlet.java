@@ -154,9 +154,16 @@ public class RestServlet extends HttpServlet {
                     + " is supposed to be a Column.Reference but was not");
           }
 
+          // In some cases the target type might be one of the child models, in
+          // which case the type has to be provided with the data
+          ModelStructure targetType = ref.getTargetType();
+          if (obj.has("_type")) {
+            targetType = targetType.getSchema().getModelStructure(obj.getString("_type"));
+          }
+
           // recursively load the reference
           rec.setReference((Column.Reference) ref,
-                  createRecord(ref.getTargetType(), (JSONObject) res));
+                  createRecord(targetType, (JSONObject) res));
         } else {
           // looks like a primitive field, we will get a string and parse the data
           // based on the column type
