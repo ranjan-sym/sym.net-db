@@ -185,7 +185,7 @@ public class ModelInstance<M extends ModelInstance> implements Model {
 
   public boolean isModified() {
     for(ModelRow r:set.allRows) {
-      if(r.isModified()) {
+      if(r != null && r.isModified()) {
         return true;
       }
     }
