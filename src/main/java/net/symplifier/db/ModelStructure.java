@@ -205,6 +205,9 @@ public class ModelStructure<T extends Model> {
         i+= 1;
       }
     }
+  }
+
+  void setupRelationship() {
     for(Reference reference:this.references.values()) {
       reference.onInitReference(this);
     }

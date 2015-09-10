@@ -74,6 +74,9 @@ public class Schema {
     for(ModelStructure m:allModels.values()) {
       m.buildRelationship();
     }
+    for(ModelStructure m:allModels.values()) {
+      m.setupRelationship();
+    }
   }
   /**
    * Creates all the model into the database system
