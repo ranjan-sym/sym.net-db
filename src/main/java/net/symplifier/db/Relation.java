@@ -98,13 +98,21 @@ public interface Relation {
     }
 
     public HasMany(Class<T> targetModel, String intermediateTable) {
-      this(targetModel, intermediateTable, null, null);
+      this(targetModel, intermediateTable, null, null, null);
+    }
+
+    public HasMany(Class<T> targetModel, String intermediateTable, Column.Reference<T, M> backReference) {
+      this(targetModel, intermediateTable, null, null, backReference);
     }
 
     public HasMany(Class<T> targetModel, String intermediateTable, String sourceFieldName, String targetFieldName) {
+      this(targetModel, intermediateTable, sourceFieldName, targetFieldName, null);
+    }
+
+    public HasMany(Class<T> targetModel, String intermediateTable, String sourceFieldName, String targetFieldName, Column.Reference<T, M> backRef) {
       this.targetType  = targetModel;
       this.intermediateTableName = intermediateTable;
-      this.backReference = null;
+      this.backReference = backRef;
       this.targetFieldName = targetFieldName;
       this.sourceFieldName = sourceFieldName;
     }

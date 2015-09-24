@@ -432,26 +432,43 @@ public class ModelStructure<T extends Model> {
     }
 
     metaData = new JSONObject();
-    metaData.put("model", this.getTableName());
-    metaData.put("default", this.createDefault().toJSON());
-    JSONObject r = new JSONObject();
+    metaData.put("name", this.getTableName());
+    metaData.put("parent", parents.length > 0 ? parents[0].getTableName() : null);
+
+    JSONArray fields = new JSONArray();
+    for(Column col: this.columns) {
+      fields.put(col.getMetaData());
+    }
+    metaData.put("fields", fields);
+
+    //metaData.put("default", this.createDefault().toJSON());
+    JSONArray r = new JSONArray();
     Collection<Reference> allRelations = this.getAllRelations();
     for(Reference ref:allRelations) {
       // if the relationship is of type HasMany then encapsulate the
       // reference table name within [] in JSON
-      JSONArray rel = new JSONArray();
+      JSONObject relation = new JSONObject();
+      relation.put("name", ref.getRelationName());
+      String refText = "";
       if (ref instanceof Relation.HasMany) {
-        rel.put(ref.getTargetType().getTableName());
+        refText = ref.getTargetType().getTableName() + "[";
         ModelStructure intermediate = ref.getIntermediateTable();
-        rel.put(intermediate == null?null:intermediate.getTableName());
-        rel.put(ref.getTargetFieldName());
-        rel.put(ref.getSourceFieldName());
+        if (intermediate != null) {
+          Reference backRef = ((Relation.HasMany) ref).getBackReference();
+          if (backRef != null) {
+            refText += backRef.getRelationName();
+          }
+          refText += "]";
+        } else {
+          refText += ref.getTargetFieldName() + "]";
+        }
       } else {
-        rel.put(ref.getTargetType().getTableName());
-        rel.put(ref.getSourceFieldName());
+        refText = ref.getTargetFieldName();
       }
-      r.put(ref.getRelationName(), rel);
+      relation.put("ref", refText);
+      r.put(relation);
     }
+
     metaData.put("relations", r);
 
     return metaData;

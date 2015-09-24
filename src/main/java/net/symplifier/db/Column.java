@@ -3,8 +3,12 @@ package net.symplifier.db;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import net.symplifier.db.exceptions.ModelException;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -31,6 +35,17 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
   private java.lang.String name;
   /* The field name of this column in the database */
   private java.lang.String fieldName;
+  /*  */
+  private java.lang.String caption;
+
+  private Integer minimumLength;
+  private Integer maximumLength;
+  private T lowThreshold;
+  private T highThreshold;
+  private boolean required;
+  private boolean unique;
+  private List<Validator> validators;
+  private Map<String, String> properties;
 
   private Object parameterSetter;
 
@@ -50,12 +65,91 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
     this.fieldName = builder.getName();
     this.defaultValue = builder.getDefaultValue();
     this.canBeNull = builder.canBeNull();
+    this.caption = builder.caption;
+    this.minimumLength = builder.minimumLength;
+    this.maximumLength = builder.maximumLength;
+    this.lowThreshold  = builder.lowThreshold;
+    this.highThreshold = builder.highThreshold;
+    this.required = builder.required;
+    this.unique = builder.unique;
+    this.validators = builder.validators;
+    this.properties= builder.properties;
 
     cache = builder.cacheLimit <= 0 ? null :
             CacheBuilder.newBuilder().maximumSize(builder.getCacheLimit()).build();
 
 
 
+  }
+
+  public JSONObject getMetaData() {
+    JSONObject o = new JSONObject();
+    o.put("name", this.fieldName);
+    o.put("caption", this.caption);
+    o.put("type", this.getTypeText());
+    if (this.required) {
+      o.put("required", true);
+    }
+    if (this.unique) {
+      o.put("unique", true);
+    }
+    if (this.defaultValue != null) {
+      o.put("default", this.defaultValue);
+    }
+    // Go through all the properties
+    if (this.properties != null) {
+      for(Map.Entry<String, String> entry: this.properties.entrySet()) {
+        o.put(entry.getKey(), entry.getValue());
+      }
+    }
+
+    // Add all the validators
+    if (this.validators != null) {
+      JSONArray validators = new JSONArray();
+      for(Validator v:this.validators) {
+        validators.put(v.getJSON());
+      }
+      o.put("validators", validators);
+    }
+
+
+
+    return o;
+  }
+
+
+  public String getThreshold() {
+    String res = "";
+    if (lowThreshold != null) {
+      res += lowThreshold;
+    }
+    if (highThreshold != null) {
+      if (!res.isEmpty()) {
+        res += ",";
+      }
+      res += highThreshold;
+    }
+    if (!res.isEmpty()) {
+      res = "(" + res + ")";
+    }
+    return res;
+  }
+
+  public String getLengthLimit() {
+    String res = "";
+    if (minimumLength != null) {
+      res += minimumLength;
+    }
+    if (maximumLength != null) {
+      if (!res.isEmpty()) {
+        res += ",";
+      }
+      res += maximumLength;
+    }
+    if (!res.isEmpty()) {
+      res = "(" + res + ")";
+    }
+    return res;
   }
 
   /**
@@ -65,6 +159,13 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
    */
   public T getDefaultValue() {
     return defaultValue;
+  }
+
+  public abstract String getTypeText();
+
+
+  public String getCaption() {
+    return caption;
   }
 
   /**
@@ -283,6 +384,10 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
     public boolean isPrimary() {
       return true;
     }
+
+    public String getTypeText() {
+      return "INT";
+    }
   }
 
 
@@ -305,6 +410,10 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
     public Reference(Class<T> referenceType, Builder<Long> builder) {
       super(Long.class, builder);
       this.referenceType = referenceType;
+    }
+
+    public String getTypeText() {
+      return "REF(" + referenceModel.getTableName() + ")";
     }
 
     @Override
@@ -370,6 +479,10 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
     public BackReference(Class<M> sourceType) {
       super(Long.class);
       this.sourceType = sourceType;
+    }
+
+    public String getTypeText() {
+      return "INT";
     }
 
     @Override
@@ -476,42 +589,120 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
     public abstract G getGeneric(T value);
   }
 
+  public static class Validator {
+    private String check;
+    private String message;
+
+    public Validator(String check, String message) {
+      this.check = check;
+      this.message = message;
+    }
+
+    public JSONObject getJSON() {
+      JSONObject o = new JSONObject();
+      o.put("check", check);
+      o.put("message", message);
+      return o;
+    }
+  }
   /**
    * Column builder
    */
   public static class Builder<T> {
     private java.lang.String name = null;
+    private java.lang.String caption = null;
+    private boolean required = false;
+    private boolean unique = false;
     private int cacheLimit = 0;
     private boolean allowNull = false;
     private T defaultValue = null;
-
+    private T lowThreshold = null;
+    private T highThreshold = null;
+    private Integer minimumLength = null;
+    private Integer maximumLength = null;
+    private List<Validator> validators = null;
+    private Map<String, String> properties = null;
     /**
      * Set the name to be used for setting the column field name
      * @param name The name to be used as column field name
      * @return self chaining
      */
-    public Builder setName(java.lang.String name) {
+    public Builder<T> setName(java.lang.String name) {
       this.name = name;
       return this;
     }
+
+    public Builder<T> set(String key, String value) {
+      if (properties == null) {
+        properties = new HashMap<>();
+      }
+
+      properties.put(key, value);
+      return this;
+    }
+
+    public Builder<T> setRequired() {
+      this.required = true;
+      return this;
+    }
+
+    public Builder<T> setUnique() {
+      this.unique = true;
+      return this;
+    }
+
+    public Builder<T> addValidator(String check, String message) {
+      if (validators == null) {
+        validators = new ArrayList<>();
+      }
+
+      validators.add(new Validator(check, message));
+      return this;
+    }
+
+    public Builder<T> setCaption(java.lang.String caption) {
+      this.caption = caption;
+      return this;
+    }
+
+    public Builder<T> setMinimumLength(int length) {
+      this.minimumLength = length;
+      return this;
+    }
+
+    public Builder<T> setMaximumLength(int length) {
+      this.maximumLength = length;
+      return this;
+    }
+
+    public Builder<T> setLowThreshold(T value) {
+      this.lowThreshold = value;
+      return this;
+    }
+
+    public Builder<T> setHighThreshold(T value) {
+      this.highThreshold = value;
+      return this;
+    }
+
 
     /**
      * Set cache size for the column
      * @param limit The number of records to store in cache
      * @return self chaining
      */
-    public Builder setCacheLimit(int limit) {
+    public Builder<T> setCacheLimit(int limit) {
       this.cacheLimit = limit;
       return this;
     }
 
-    public Builder setDefaultValue(T value) {
+    public Builder<T> setDefaultValue(T value) {
       this.defaultValue = value;
       return this;
     }
 
 
-    public Builder allowNull() {
+    public Builder<T> allowNull() {
       this.allowNull = true;
       return this;
     }
@@ -550,6 +741,10 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
     public Text(Builder<String> builder) {
       super(java.lang.String.class, builder);
     }
+
+    public String getTypeText() {
+      return "TEXT" + super.getLengthLimit();
+    }
   }
 
   public static class Int<M extends Model> extends Column<M, java.lang.Integer> {
@@ -559,6 +754,10 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
 
     public Int(Builder<Integer> builder) {
       super(java.lang.Integer.class, builder);
+    }
+
+    public String getTypeText() {
+      return "INT" + super.getThreshold();
     }
   }
 
@@ -572,6 +771,10 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
     public Bool(Builder<Boolean> builder) {
       super(Boolean.class, builder);
     }
+
+    public String getTypeText() {
+      return "BOOL";
+    }
   }
 
   public static class Double<M extends Model> extends Column<M, java.lang.Double> {
@@ -583,6 +786,10 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
     public Double(Builder<java.lang.Double> builder) {
       super(java.lang.Double.class, builder);
     }
+
+    public String getTypeText() {
+      return "NUMBER" + getThreshold();
+    }
   }
 
 
@@ -593,6 +800,10 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
 
     public Date(Builder<java.util.Date> builder) {
       super(java.util.Date.class, builder);
+    }
+
+    public String getTypeText() {
+      return "DATE" + getThreshold();
     }
   }
 }
