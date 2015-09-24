@@ -106,7 +106,8 @@ public interface JDBCParameter<V> {
       if (value == null) {
         statement.setNull(index, Types.BLOB);
       } else {
-        statement.setBlob(index, new SerialBlob(value));
+        statement.setBytes(index, value);
+        //statement.setBlob(index, new SerialBlob(value));
       }
     }
   }

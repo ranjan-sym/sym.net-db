@@ -106,11 +106,11 @@ public interface JDBCField<T> {
 
     @Override
     public byte[] get(ResultSet rs, int index) throws SQLException {
-      java.sql.Blob blob = rs.getBlob(index);
+      byte[] bytes = rs.getBytes(index);
       if (rs.wasNull()) {
         return null;
       } else {
-        return blob.getBytes(0, (int)blob.length());
+        return bytes;
       }
     }
   }
