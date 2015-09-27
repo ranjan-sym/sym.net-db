@@ -21,6 +21,10 @@ public class Password extends net.symplifier.db.Column.CustomType<byte[]> {
       super(Password.class, byte[].class);
     }
 
+    public String getTypeText() {
+      return "PASSWORD";
+    }
+
     @Override
     public Password getFromGeneric(byte[] value) {
       if (value == null) {
