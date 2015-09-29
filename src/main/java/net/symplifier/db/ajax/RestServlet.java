@@ -82,25 +82,49 @@ public class RestServlet extends HttpServlet {
     }
 
     JSONTokener tokener = new JSONTokener(request.getReader());
-    JSONObject source = new JSONObject(tokener);
-    Model record = null;
-    try {
-      record = createRecord(model, source);
+    Object v = tokener.nextValue();
+    if (v instanceof JSONObject) {
+      JSONObject source = (JSONObject)v;
+      Model record;
+      try {
+        record = createRecord(model, source);
+        record.save();
+      } catch(Exception e) {
+        e.printStackTrace();
+        response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        response.getWriter().print(e.getMessage());
+        response.flushBuffer();
+        return;
+      }
 
-    } catch(Exception e) {
-      e.printStackTrace();
+      response.setContentType("application/json");
+      response.getWriter().write(record.toJSON().toString());
+    } else if (v instanceof JSONArray) {
+      JSONArray list = (JSONArray)v;
+      JSONArray res = new JSONArray();
+      for(int i=0; i<list.length(); ++i) {
+        JSONObject source = list.getJSONObject(i);
+        Model record = null;
+        try {
+          record = createRecord(model, source);
+          record.save();
+        } catch(Exception e) {
+          e.printStackTrace();
+          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          response.getWriter().print(e.getMessage());
+          response.flushBuffer();
+          return;
+        }
+        res.put(record.toJSON());
+      }
+      response.setContentType("application/json");
+      response.getWriter().write(res.toString());
+    } else {
+      response.setContentType("text/plain");
       response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-      response.getWriter().print(e.getMessage());
+      response.getWriter().write("Invalid data");
       response.flushBuffer();
-      return;
     }
-
-
-    // Save the record
-    record.save();
-
-    response.setContentType("application/json");
-    response.getWriter().write(record.toJSON().toString());
   }
 
   private Model createRecord(ModelStructure model, JSONObject source) throws Exception {
