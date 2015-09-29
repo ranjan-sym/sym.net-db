@@ -25,4 +25,8 @@ public class Oracle {
       return metaData;
     }
   }
+
+  public String records(String table) {
+    return Schema.get().getModelStructure(table).query().build().execute().toJSON().toString();
+  }
 }
