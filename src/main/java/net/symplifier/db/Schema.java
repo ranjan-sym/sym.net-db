@@ -200,6 +200,9 @@ public class Schema {
     return s.get(id);
   }
 
+  public <T> T runSQL(DBSession session, String sql, Class<T> returnType, Object ... sqlValues) {
+    return getDriver().runSQL(session, sql, returnType, sqlValues);
+  }
 
   // interceptor implementation
   private class InterceptorMap {

@@ -49,4 +49,13 @@ public interface Driver {
    */
   <T extends Model> Query<T> createQuery(Query.Builder<T> builder);
 
+  /**
+   * Run the given SQL and return the result
+   *
+   * @param sql
+   * @param returnType
+   * @param <T>
+   * @return
+   */
+  <T> T runSQL(DBSession session, String sql, Class<T> returnType, Object ... sqlValues);
 }

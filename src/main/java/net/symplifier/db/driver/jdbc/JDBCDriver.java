@@ -6,9 +6,13 @@ import net.symplifier.db.exceptions.DatabaseException;
 import org.apache.commons.dbcp2.*;
 import org.apache.commons.pool2.ObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPool;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.HashMap;
@@ -20,6 +24,8 @@ import java.util.Map;
  * Created by ranjan on 7/28/15.
  */
 public abstract class JDBCDriver implements Driver, Session.Listener {
+  public static final Logger LOGGER = LogManager.getLogger(JDBCDriver.class);
+
   private DataSource dataSource;
   private final Schema schema;
   @Override
@@ -32,7 +38,7 @@ public abstract class JDBCDriver implements Driver, Session.Listener {
     return schema;
   }
 
-  public JDBCField getField(Class type) {
+  public Object getField(Class type) {
     return FIELDS.get(type);
   }
 
@@ -155,6 +161,48 @@ public abstract class JDBCDriver implements Driver, Session.Listener {
       throw new DatabaseException("Error while executing CREATE DDL", e);
     }
 
+  }
+
+  @Override
+  public <T> T runSQL(DBSession session, String sql, Class<T> returnType, Object ... sqlValues) {
+    JDBCSession jdbcSession = (JDBCSession)session;
+    JDBCField<T> field = null;
+    if (returnType != null) {
+      field = (JDBCField<T>) getField(returnType);
+      if (field == null) {
+        LOGGER.error("Unknown return type provided in runSQL while trying to execute " + sql);
+        return null;
+      }
+    }
+
+    Connection connection = jdbcSession.getConnection();
+    try(PreparedStatement statement = connection.prepareStatement(sql)) {
+      for(int i=0; i<sqlValues.length; ++i) {
+        Object v = sqlValues[i];
+        JDBCParameter param = getParameterSetter(v.getClass());
+        if (param == null) {
+          LOGGER.error("Unknown parameter type " + v.getClass().getTypeName() + " provided in runSQL while trying to execute " + sql);
+          return null;
+        }
+
+        param.set(statement, i+1, v);
+      }
+
+      if (returnType == null) {
+        boolean res = statement.execute();
+        return (T)Boolean.valueOf(res);
+      } else {
+        ResultSet rs = statement.executeQuery();
+        if (rs.next()) {
+          return field.get(rs, 1);
+        } else {
+          return null;
+        }
+      }
+    } catch (SQLException e) {
+      LOGGER.error("Error while running sql " + sql, e);
+      return null;
+    }
   }
 
   @Override
