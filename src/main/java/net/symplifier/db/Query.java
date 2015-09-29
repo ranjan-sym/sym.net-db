@@ -265,7 +265,14 @@ public interface Query<T extends Model> {
       return filter;
     }
 
-    public Set<Order> getOrderBy() { return orderBy; }
+    public Set<Order> getOrderBy() {
+      if (this.orderBy.size() == 0 && this.getPrimaryModel().getSequenceColumn() !=  null) {
+        Set<Order> set = new HashSet<>();
+        set.add(new Order(this.getPrimaryModel().getSequenceColumn(), false));
+        return set;
+      }
+      return orderBy;
+    }
 
     public Limit getLimit() {
       return limit;
@@ -442,6 +449,11 @@ public interface Query<T extends Model> {
 
 
     public Set<Order> getOrderBy() {
+      if (orderBy.size() == 0 && getModel().getSequenceColumn() != null) {
+        HashSet<Order> res = new HashSet<>();
+        res.add(new Order(getModel().getSequenceColumn(), false));
+        return res;
+      }
       return orderBy;
     }
 
