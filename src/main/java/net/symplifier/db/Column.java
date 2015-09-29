@@ -398,7 +398,7 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
    * @param <T> The Target Model
    */
   public static class Reference<M extends Model, T extends Model>
-          extends Column<M, Long> implements net.symplifier.db.Reference<M, T> {
+          extends Column<M, java.lang.Long> implements net.symplifier.db.Reference<M, T> {
 
     private final Class<T> referenceType;
     private ModelStructure<T> referenceModel;
@@ -407,8 +407,8 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
       this(referenceType, new Builder<>());
     }
 
-    public Reference(Class<T> referenceType, Builder<Long> builder) {
-      super(Long.class, builder);
+    public Reference(Class<T> referenceType, Builder<java.lang.Long> builder) {
+      super(java.lang.Long.class, builder);
       this.referenceType = referenceType;
     }
 
@@ -546,7 +546,7 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
       this(interfaceType, new Builder<>());
     }
 
-    public Interface(Class<T> interfaceType, Builder<Long> builder) {
+    public Interface(Class<T> interfaceType, Builder<java.lang.Long> builder) {
       super(interfaceType, builder);
     }
   }
@@ -759,6 +759,16 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
     public String getTypeText() {
       return "INT" + super.getThreshold();
     }
+  }
+
+  public static class BigInt<M extends Model> extends Column<M, java.lang.Long> {
+    public BigInt() { super(java.lang.Long.class); }
+
+    public BigInt(Builder<java.lang.Long> builder) {
+      super(java.lang.Long.class, builder);
+    }
+
+    public String getTypeText() { return "INT" + super.getThreshold(); }
   }
 
   public static class Bool<M extends Model> extends Column<M, Boolean> {
