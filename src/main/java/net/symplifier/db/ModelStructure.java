@@ -2,7 +2,9 @@ package net.symplifier.db;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import net.symplifier.db.annotations.SequencedTable;
 import net.symplifier.db.annotations.Table;
+import net.symplifier.db.exceptions.ModelException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -46,6 +48,9 @@ public class ModelStructure<T extends Model> {
   private final List<Column<T, ?>> columns;
   private final Map<String, Integer> columnIndex = new HashMap<>();
 
+  private final String sequenceField;
+  private Column sequenceColumn;
+
   /* The list of all the references of this model */
   /* This list is not being used at the moment, and may be useful only in case
      we decide to use automatically loaded (default) references
@@ -85,7 +90,7 @@ public class ModelStructure<T extends Model> {
     this.isModelInterface = false;
 
     tableName = table;
-
+    sequenceField = null;
     parents = new ModelStructure[0];
     implementations = null;
 
@@ -126,6 +131,13 @@ public class ModelStructure<T extends Model> {
       tableName = table.value();
     } else {
       tableName = Schema.toDBName(modelClass.getSimpleName());
+    }
+
+    SequencedTable sequenced = modelClass.getAnnotation(SequencedTable.class);
+    if (sequenced != null) {
+      sequenceField = sequenced.sequenceField();
+    } else {
+      sequenceField = null;
     }
 
 
@@ -192,6 +204,13 @@ public class ModelStructure<T extends Model> {
       }
     }
 
+    // Let's see if the sequenced field has been defined
+    if (sequenceField != null) {
+      sequenceColumn = getColumn(sequenceField);
+      if (sequenceColumn == null) {
+        throw new ModelException(this.modelClass, "A sequence field " + sequenceField + " has been defined, but a column with that name was not found in the model");
+      }
+    }
 
     if (!isModelInterface) {
       // Set level on all implementations for this model structure
@@ -472,5 +491,9 @@ public class ModelStructure<T extends Model> {
     metaData.put("relations", r);
 
     return metaData;
+  }
+
+  public Column getSequenceColumn() {
+    return sequenceColumn;
   }
 }

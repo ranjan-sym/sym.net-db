@@ -510,7 +510,7 @@ public class ModelInstance<M extends ModelInstance> implements Model {
     // Stage 3. Save the model hierarchy
     for(i=0; i<implStart; ++i) {
       ModelRow row = set.allRows[i];
-      ModelStructure st;
+      ModelStructure st = null;
       if (row == null) {
         if (isNew) {
           st = structure.getParents()[i];   // Recovering the structure here through
@@ -535,6 +535,15 @@ public class ModelInstance<M extends ModelInstance> implements Model {
             session.update(row, getId());
           }
         }
+      }
+
+      // Let's check for a sequenced structure, need to update the sequence field
+      if(isNew && st != null && st.getSequenceColumn() != null) {
+        String sql = "UPDATE " + st.getTableName() + " SET " + st.getSequenceColumn().getFieldName() + "=" + getId()
+                + " WHERE " + st.getPrimaryKeyField() + "=" + getId();
+        st.getSchema().runSQL(session, sql, null);
+
+        this.set(st.getSequenceColumn(), getId());
       }
     }
 
