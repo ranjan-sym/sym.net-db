@@ -30,6 +30,10 @@ public class JDBCSession extends DBSession {
     this.connection = connection;
   }
 
+  public Connection getConnection() {
+    return connection;
+  }
+
   public void doBeginTransaction() {
     try {
       this.connection.setAutoCommit(false);
