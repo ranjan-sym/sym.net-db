@@ -482,7 +482,7 @@ public class ModelStructure<T extends Model> {
           refText += ref.getTargetFieldName() + "]";
         }
       } else {
-        refText = ref.getTargetFieldName();
+        refText = ref.getSourceFieldName();
       }
       relation.put("ref", refText);
       r.put(relation);
