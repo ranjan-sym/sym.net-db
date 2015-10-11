@@ -1,6 +1,7 @@
 package net.symplifier.db.ajax;
 
 import net.symplifier.db.*;
+import net.symplifier.db.exceptions.DatabaseException;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -68,14 +69,58 @@ public class RestServlet extends HttpServlet {
     return null;
   }
 
-  @Override
-  public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException{
+  private ModelStructure getModel(HttpServletRequest request) {
     String uri = request.getPathInfo();
     // Strip out the starting and trailing '/'
     uri = StringUtils.strip(uri, "/");
 
     // First try to find out the model structure
-    ModelStructure model = Schema.get().getModelStructure(uri);
+    return Schema.get().getModelStructure(uri);
+  }
+
+  @Override
+  protected void doDelete(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    ModelStructure model = getModel(request);
+
+    if (model == null) {
+      response.sendError(HttpServletResponse.SC_NOT_FOUND, "The resource was not found on the system");
+      return;
+    }
+
+    long id;
+    try {
+      id = Long.parseLong(request.getParameter("id"));
+    } catch(NumberFormatException e) {
+      response.sendError(HttpServletResponse.SC_NOT_FOUND, "Invalid resource id " + request.getParameter("id"));
+      return;
+    }
+
+    Model record = model.get(id);
+
+    // If a type and child Id is provided then we need to remove an intermediate table
+    String type = request.getParameter("type");
+    if (type != null) {
+      Reference childType = record.getStructure().getRelation(type);
+      if (childType instanceof Relation.HasMany && childType.getIntermediateTable() != null) {
+        Relation.HasMany childRelation = (Relation.HasMany) childType;
+        long childId = Long.parseLong(request.getParameter("child"));
+        record.deleteChild(childRelation, childId);
+      } else {
+        throw new DatabaseException("Trying to delete a child record on " + record.getStructure() + " of " + childType.getRelationName() + " which does not have an intermediate table", null);
+      }
+    } else {
+      record.delete();
+    }
+
+    JSONObject res = new JSONObject();
+    res.put("id", id);
+    response.getWriter().write(res.toString());
+  }
+
+  @Override
+  public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException{
+    ModelStructure model = getModel(request);
+
     if (model == null) {
       response.sendError(HttpServletResponse.SC_NOT_FOUND, "The resource was not found on the System");
       return;
