@@ -17,6 +17,10 @@ public class Password extends net.symplifier.db.Column.CustomType<byte[]> {
 
   public static class Column<M extends Model> extends net.symplifier.db.Column.Custom<M, byte[], Password> {
 
+    public Column(Column.Builder<byte[]> builder) {
+      super(Password.class, byte[].class, builder);
+    }
+
     public Column() {
       super(Password.class, byte[].class);
     }
