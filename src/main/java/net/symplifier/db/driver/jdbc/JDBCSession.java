@@ -210,18 +210,18 @@ public class JDBCSession extends DBSession {
   }
 
   @Override
-  public void doDeleteIntermediate(ModelStructure intermediate, Relation.HasMany ref, Model refSource, Model refTarget) {
+  public void doDeleteIntermediate(ModelStructure intermediate, Relation.HasMany ref, long sourceId, long childId) {
     StringBuilder sql = new StringBuilder();
     sql.append("DELETE FROM ");
     sql.append(driver.formatFieldName(intermediate.getTableName()));
     sql.append(" WHERE ");
     sql.append(driver.formatFieldName(ref.getSourceFieldName()));
     sql.append('=');
-    sql.append(refSource.getId());
+    sql.append(sourceId);
     sql.append(" AND ");
     sql.append(driver.formatFieldName(ref.getTargetFieldName()));
     sql.append('=');
-    sql.append(refTarget.getId());
+    sql.append(childId);
 
     try {
       connection.createStatement().execute(sql.toString());
@@ -232,7 +232,32 @@ public class JDBCSession extends DBSession {
 
   @Override
   public void doUpdateIntermediate(ModelStructure intermediate, Relation.HasMany ref, Model refSource, Model refTarget) {
+
+    // Only insert a record if there isn't already a record there
     StringBuilder sql = new StringBuilder();
+    sql.append("SELECT * FROM ");
+    sql.append(driver.formatFieldName(intermediate.getTableName()));
+    sql.append(" WHERE ");
+    sql.append(driver.formatFieldName(ref.getSourceFieldName()));
+    sql.append("=");
+    sql.append(refSource.getId());
+    sql.append(" AND ");
+    sql.append(driver.formatFieldName(ref.getTargetFieldName()));
+    sql.append("=");
+    sql.append(refTarget.getId());
+    try {
+      ResultSet rs = connection.createStatement().executeQuery(sql.toString());
+      if (rs.next()) {
+        rs.close();
+        return;
+      } else {
+        rs.close();
+      }
+    } catch(SQLException e) {
+      throw new DatabaseException("An error occurred while trying to fetch intermediate record for checking", e);
+    }
+
+    sql = new StringBuilder();
     sql.append("INSERT INTO ");
     sql.append(driver.formatFieldName(intermediate.getTableName()));
     sql.append('(');

@@ -189,16 +189,16 @@ public abstract class DBSession {
    *
    * @param intermediate The intermediate table
    * @param ref The HasMany Relation reference
-   * @param refSource The source model as per HasMany relation ref
-   * @param refTarget The target model as per HasMany relation ref
+   * @param sourceId The source model as per HasMany relation ref
+   * @param childId The target model as per HasMany relation ref
    */
   public final void deleteIntermediate(ModelStructure intermediate,
-                                          Relation.HasMany ref, Model refSource,
-                                          Model refTarget) {
-    doDeleteIntermediate(intermediate, ref, refSource, refTarget);
+                                          Relation.HasMany ref, long sourceId,
+                                          long childId) {
+    doDeleteIntermediate(intermediate, ref, sourceId, childId);
   }
 
   public abstract void doDeleteIntermediate(ModelStructure intermediate,
-                                          Relation.HasMany ref, Model refSource,
-                                          Model refTarget);
+                                          Relation.HasMany ref, long sourceId,
+                                          long childId);
 }
