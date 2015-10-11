@@ -14,6 +14,10 @@ import java.util.*;
  */
 public class ModelInstance<M extends ModelInstance> implements Model {
 
+  // Local level flag to set the modification flag when the many to many
+  // relationship is changed, as we want to save the intermediate record
+  // only in this case
+  private boolean isModified = false;
 
 
   public class ModelSet {
@@ -184,6 +188,10 @@ public class ModelInstance<M extends ModelInstance> implements Model {
   }
 
   public boolean isModified() {
+    if (isModified) {
+      return true;
+    }
+
     for(ModelRow r:set.allRows) {
       if(r != null && r.isModified()) {
         return true;
@@ -432,6 +440,7 @@ public class ModelInstance<M extends ModelInstance> implements Model {
       hasManyData.put(relation, d);
     }
     d.newRecords.add(model);
+    isModified = true;
     return model;
   }
 
@@ -441,12 +450,32 @@ public class ModelInstance<M extends ModelInstance> implements Model {
 
     RelationalData<V> d = (RelationalData<V>)hasManyData.get(relation);
     if (d != null) {
+      isModified = true;
       d.newRecords.remove(model);
     }
   }
 
   /* A transient variable used to avoid circular reference */
   private transient boolean saving = false;
+
+  @Override
+  public boolean delete(DBSession session) {
+    // Need to delete all the parent rows as well
+    ModelStructure structure = this.getStructure();
+    int implStart = structure.getParents().length + 1;
+    for(int i=0; i<implStart; ++i) {
+      ModelRow row = set.allRows[i];
+      session.delete(row);
+    }
+
+    return true;
+  }
+
+  @Override
+  public boolean deleteChild(DBSession session, Relation.HasMany relation, long childId) {
+    session.deleteIntermediate(relation.getIntermediateTable(), relation, getId(), childId);
+    return true;
+  }
 
   @Override
   public boolean save(DBSession session) {
@@ -577,6 +606,7 @@ public class ModelInstance<M extends ModelInstance> implements Model {
       }
     }
 
+    isModified = false;
     saving = false;
     return true;
   }

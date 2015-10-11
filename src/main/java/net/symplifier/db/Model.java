@@ -177,6 +177,24 @@ public interface Model {
     session.saved(this);
   }
 
+  boolean delete(DBSession session);
+
+  default void delete() {
+    Schema schema = Schema.get();
+    DBSession session = Session.get(schema, DBSession.class);
+    delete(session);
+  }
+
+  boolean deleteChild(DBSession session, Relation.HasMany relation, long childId);
+
+  default void deleteChild(Relation.HasMany relation, long childId) {
+    Schema schema = Schema.get();
+    DBSession session = Session.get(schema, DBSession.class);
+    deleteChild(session, relation, childId);
+  }
+
+
+
 
   default JSONObject toJSON() {
     return toJSON(0);
