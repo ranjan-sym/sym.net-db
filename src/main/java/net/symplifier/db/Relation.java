@@ -148,7 +148,7 @@ public interface Relation {
           this.sourceFieldName = model.getPrimaryKeyField();
         }
         if (targetFieldName == null) {
-          String res = backReference.generateFieldName();
+          String res = backReference.getFieldName();
           targetFieldName = res; //model.getTableName() + "_id";
         }
       }
