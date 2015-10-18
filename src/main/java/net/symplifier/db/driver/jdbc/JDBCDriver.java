@@ -16,6 +16,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -160,6 +161,41 @@ public abstract class JDBCDriver implements Driver, Session.Listener {
     } catch(SQLException e) {
       throw new DatabaseException("Error while executing CREATE DDL", e);
     }
+
+    // Create all the indexes as well
+    List<Column.Index> indexes = structure.getIndexes();
+    for(Column.Index index:indexes) {
+      builder = new StringBuilder();
+      builder.append("CREATE ");
+      if (index.isUnique()) {
+        builder.append("UNIQUE ");
+      }
+      builder.append("INDEX IF NOT EXISTS IDX_");
+      builder.append(structure.getTableName());
+      builder.append("_");
+      builder.append(index.getName());
+      builder.append(" ON ");
+      builder.append(structure.getTableName());
+      builder.append("(");
+      for(int i=0; i<index.getColumnCount(); ++i) {
+        if (i > 0) {
+          builder.append(',');
+        }
+        builder.append(index.getColumn(i).getFieldName());
+      }
+      builder.append(");");
+
+      try (Connection conn = dataSource.getConnection()) {
+        sql = builder.toString();
+        System.out.println(sql);
+        conn.createStatement().execute(sql);
+        conn.close();
+      } catch(SQLException e) {
+        throw new DatabaseException("Error while executing CREATE INDEX", e);
+      }
+    }
+
+
 
   }
 
