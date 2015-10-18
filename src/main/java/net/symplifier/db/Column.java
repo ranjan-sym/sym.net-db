@@ -816,4 +816,59 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
       return "DATE" + getThreshold();
     }
   }
+
+  public static class Index<M extends Model> {
+
+    private final boolean unique;
+    private final Column<M, ?> columns[];
+    private final boolean columnsOrder[];
+    private String name;
+
+    public Index(Column<M, ?> ... columns) {
+      this(false, columns);
+    }
+
+    @SafeVarargs
+    public Index(boolean unique, Column<M, ?> ... columns) {
+      this.columns = columns;
+      this.unique = unique;
+      this.columnsOrder = new boolean[columns.length];
+    }
+
+    public Index<M> setName(String name) {
+      this.name = name;
+      return this;
+    }
+
+    public Index<M> setDescending(Column<M, ?> column, boolean descending) {
+      for(int i=0; i<columns.length; ++i) {
+        if (columns[i] == column) {
+          columnsOrder[i] = descending;
+        }
+      }
+      return this;
+    }
+
+    public boolean isUnique() {
+      return unique;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public int getColumnCount() {
+      return columns.length;
+    }
+
+    public Column<M, ?> getColumn(int arrayIndex) {
+      return columns[arrayIndex];
+    }
+
+    public boolean isDescending(int arrayIndex) {
+      return columnsOrder[arrayIndex];
+    }
+
+
+  }
 }
