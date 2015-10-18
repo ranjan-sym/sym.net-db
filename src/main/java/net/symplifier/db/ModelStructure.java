@@ -47,6 +47,7 @@ public class ModelStructure<T extends Model> {
   /* The list of all the columns of this model, mapped by name of the column */
   private final List<Column<T, ?>> columns;
   private final Map<String, Integer> columnIndex = new HashMap<>();
+  private final List<Column.Index<T>> indexes;
 
   private final String sequenceField;
   private Column sequenceColumn;
@@ -99,6 +100,9 @@ public class ModelStructure<T extends Model> {
     Column.BackReference<T, V> v = new Column.BackReference<>(modelV);
     columns.add(u);
     columns.add(v);
+
+    indexes = new ArrayList<>(1);
+    indexes.add(new Column.Index<>(false, u, v));
 
     u.setName(schema.getModelStructure(modelU).tableName);
     v.setName(schema.getModelStructure(modelV).tableName);
@@ -166,6 +170,7 @@ public class ModelStructure<T extends Model> {
 
     references = new LinkedHashMap<>();
     columns = new ArrayList<>();
+    indexes = new ArrayList<>();
 
     this.effectiveTablesCount = 1 + parents.length + implementations.size();
   }
@@ -190,13 +195,26 @@ public class ModelStructure<T extends Model> {
 
             columnIndex.put(col.getFieldName(), columns.size());
             columns.add(col);
-
           }
 
           if (Reference.class.isAssignableFrom(f.getType())) {
             Reference ref = (Reference) f.get(null);
             ref.setRelationName(f.getName());
             references.put(f.getName(), ref);
+
+            // Each reference of type one to many will have a foreign key index
+            if (ref instanceof Column.Reference) {
+              Column.Index idx = new Column.Index((Column.Reference)ref);
+              idx.setName("FK_" + f.getName());
+              indexes.add(idx);
+            }
+          }
+
+          // Also build up the indexes
+          if(Column.Index.class.isAssignableFrom(f.getType())) {
+            Column.Index idx = (Column.Index) f.get(null);
+            idx.setName(f.getName());
+            indexes.add(idx);
           }
         }
       } catch (IllegalAccessException e) {
@@ -495,5 +513,9 @@ public class ModelStructure<T extends Model> {
 
   public Column getSequenceColumn() {
     return sequenceColumn;
+  }
+
+  public List<Column.Index<T>> getIndexes() {
+    return indexes;
   }
 }
