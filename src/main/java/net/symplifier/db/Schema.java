@@ -64,7 +64,7 @@ public class Schema {
       // Second stage, build the relationship
       schema.buildRelationship();
     } else {
-      throw new DatabaseException("Trying to initialize already initialized schmea", null);
+      throw new DatabaseException("Trying to initialize already initialized schema", null);
     }
 
     return schema;
