@@ -123,6 +123,10 @@ public class ModelStructure<T extends Model> {
    */
   @SuppressWarnings("unchecked")
   public ModelStructure(Schema schema, Class<T> modelClass, Model.Factory<T> factory) {
+    // A model structure cannot be built for an interface, a concrete class
+    // must be registered
+    assert(!modelClass.isInterface()): "A model structure cannot be built for an interface. Make sure a concrete class for the interface is registered prior.";
+
     this.schema = schema;
     this.modelClass = modelClass;
     this.isModelInterface =  modelClass.isInterface();
