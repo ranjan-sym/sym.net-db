@@ -421,6 +421,10 @@ public class ModelInstance<M extends ModelInstance> implements Model {
     }
 
     RelationalData<V> d = (RelationalData<V>)hasManyData.get(relation);
+    if (d == null) {
+      d = new RelationalData<>();
+      hasManyData.put(relation, d);
+    }
     d.clear();
 
     List<V> res = builder.build().execute().toList();
