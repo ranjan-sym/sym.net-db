@@ -359,7 +359,7 @@ public class ModelInstance<M extends ModelInstance> implements Model {
    * @param id
    * @param model
    */
-  public void set(Reference ref, long id, Model model) {
+  public void set(Reference ref, Long id, Model model) {
     if (ref instanceof Column.Reference) {
       referencedData.put((Column.Reference)ref, model);
     } else if (ref instanceof Relation.HasMany) {
@@ -368,7 +368,9 @@ public class ModelInstance<M extends ModelInstance> implements Model {
         d = new RelationalData();
         hasManyData.put((Relation.HasMany)ref, d);
       }
-      d.existingRecords.put(id, model);
+      if (id != null) {
+        d.existingRecords.put(id, model);
+      }
       //d.add(model);
     }
   }

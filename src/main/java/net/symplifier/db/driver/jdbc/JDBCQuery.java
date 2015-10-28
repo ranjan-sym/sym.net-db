@@ -102,6 +102,14 @@ public class JDBCQuery<M extends Model> implements Query<M> {
           } else {
             m.recursiveLoad(rs, child.getPrimaryRow(), child);
           }
+        } else {
+          // It might be possible that there aren't any records available
+          // for this child relation (since its a left join), we want to
+          // let the seed model know about this situation otherwise everytime
+          // the children are being accessed, a query would be run as the
+          // instances are set to null for child references if the references
+          // are not loaded by joins
+          seed.set(ref, null, null);
         }
       }
 
