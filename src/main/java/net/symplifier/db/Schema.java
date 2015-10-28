@@ -2,6 +2,7 @@ package net.symplifier.db;
 
 import net.symplifier.db.annotations.Table;
 import net.symplifier.db.exceptions.DatabaseException;
+import net.symplifier.db.exceptions.ModelException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -28,14 +29,32 @@ public class Schema {
     void initialize(Schema schema);
   }
 
+  public class Shadow {
+    private List<ModelStructure<? extends Model>> registeredModels = new ArrayList<>();
+
+    public <T extends Model> ModelStructure<T> registerModel(Class<T> modelClass) {
+      if (Schema.this.isModelRegistered(modelClass)) {
+        return Schema.this.getModelStructure(modelClass);
+      }
+
+      ModelStructure<T> structure = Schema.this.registerModel(modelClass);
+      registeredModels.add(structure);
+      return structure;
+    }
+  }
+
+  public interface PartialInitializer {
+    void onInitialize(Shadow schemaShadow);
+  }
+
   private static final Schema primarySchema = new Schema();
 
   /** The complete list of all the models registered on this schema */
-  private final Map<Class<? extends Model>, ModelStructure<? extends Model>> allModels = new LinkedHashMap<>();
+  private final Map<String, ModelStructure<? extends Model>> allModels = new LinkedHashMap<>();
   private final Map<String, ModelStructure<ModelIntermediate>> intermediateModels = new LinkedHashMap<>();
 
   /** A mapping of the models by the name to its corresponding class */
-  private final Map<String, Class<? extends Model>> namedModels = new HashMap<>();
+  private final Map<Class<? extends Model>, String> modelMap = new HashMap<>();
 
   /** The driver to be used by this schema */
   private Driver driver;
@@ -62,7 +81,7 @@ public class Schema {
       generator.initialize(schema);
 
       // Second stage, build the relationship
-      schema.buildRelationship();
+      schema.buildRelationship(schema.allModels.values());
     } else {
       throw new DatabaseException("Trying to initialize already initialized schema", null);
     }
@@ -70,11 +89,24 @@ public class Schema {
     return schema;
   }
 
-  private void buildRelationship() {
-    for(ModelStructure m:allModels.values()) {
+  public static void partialInit(PartialInitializer initializer) {
+    partialInit(initializer, primarySchema);
+  }
+
+  public static void partialInit(PartialInitializer initializer, Schema schema) {
+    Shadow shadow = schema.new Shadow();
+    initializer.onInitialize(shadow);
+
+    // Now build the relationships
+    schema.buildRelationship(shadow.registeredModels);
+  }
+
+  private void buildRelationship(Iterable<ModelStructure<? extends Model>> list) {
+    for(ModelStructure m:list) {
       m.buildRelationship();
     }
-    for(ModelStructure m:allModels.values()) {
+
+    for(ModelStructure m:list) {
       m.setupRelationship();
     }
   }
@@ -106,18 +138,21 @@ public class Schema {
     return driver;
   }
 
+  public <T extends Model> boolean isModelRegistered(Class<T> clazz) {
+    return modelMap.containsKey(clazz);
+
+  }
   public <T extends Model> ModelStructure<T> registerModel(Class<T> clazz) {
     return registerModel(clazz, new Model.DefaultFactory<>(clazz));
   }
 
-  @SuppressWarnings("unchecked")
   public <T extends Model> ModelStructure<T> getModelStructure(Class clazz) {
-    return (ModelStructure<T>)allModels.get(clazz);
+    return getModelStructure(modelMap.get(clazz));
   }
 
   @SuppressWarnings("unchecked")
   public <T extends Model> ModelStructure<T> getModelStructure(String name) {
-    return (ModelStructure<T>)allModels.get(namedModels.get(name));
+    return (ModelStructure<T>)allModels.get(name);
   }
   /**
    * Registers the given Model class with the schema with a custom Model
@@ -128,29 +163,44 @@ public class Schema {
    * @param <T> The type of the Model
    */
   public <T extends Model> ModelStructure<T> registerModel(Class<T> clazz, Model.Factory<T> factory) {
-    assert(factory != null);
+    // The factory can be null in case of parent model
+    //assert(factory != null);
     return doRegisterModel(clazz, factory);
   }
 
   <T extends Model> ModelStructure<T> doRegisterModel(Class<T> clazz, Model.Factory<T> factory) {
 
     @SuppressWarnings("unchecked")
-    ModelStructure<T> impl = (ModelStructure<T>)allModels.get(clazz);
+    String name = modelMap.get(clazz);
 
-    if (impl != null) {
+    if (name != null) {
+      @SuppressWarnings("unchecked")
+      ModelStructure<T> impl = (ModelStructure<T>)allModels.get(name);
+      assert(impl != null);
       return impl;
     }
 
-    impl = new ModelStructure<>(this, clazz, factory);
-    allModels.put(clazz, impl);
-
     // Let's find out the name of the model as used in the database system
     Table table = clazz.getAnnotation(Table.class);
-    String name = table==null?toDBName(clazz.getSimpleName()):table.value();
+    name = table==null?toDBName(clazz.getSimpleName()):table.value();
 
-    namedModels.put(name, clazz);
+    // Let's see if the name is already used, in which case, we will return the
+    // existing model structure
+    if (allModels.containsKey(name)) {
+      modelMap.put(clazz, name);
+      return (ModelStructure<T>)allModels.get(name);
+    }
 
-    return impl;
+    // Create a new structure instance
+    ModelStructure<T> structure = new ModelStructure<T>(this, clazz, factory);
+
+    // Register the model
+    allModels.put(name, structure);
+
+    // Keep map of the
+    modelMap.put(clazz, name);
+
+    return structure;
   }
 
   public ModelStructure<ModelIntermediate> getIntermediateModel(String tbl) {
@@ -176,7 +226,8 @@ public class Schema {
     return primarySchema;
   }
 
-  public <T extends Model> Query.Builder<T> query(Class<T> modelClass, Column<T, ?> ... columns) {
+  @SafeVarargs
+  public final <T extends Model> Query.Builder<T> query(Class<T> modelClass, Column<T, ?> ... columns) {
     return query(this.getModelStructure(modelClass), columns);
   }
 
@@ -184,19 +235,20 @@ public class Schema {
     return new Query.Builder<>(modelStructure);
   }
 
-  public <T extends Model> Query.Builder<T> query(ModelStructure<T> modelStructure, Column<T, ?> ... columns) {
+  @SafeVarargs
+  public final <T extends Model> Query.Builder<T> query(ModelStructure<T> modelStructure, Column<T, ?> ... columns) {
     return new Query.Builder<>(modelStructure, columns);
   }
 
   @SuppressWarnings("unchecked")
   public <T extends Model> T createModel(Class<T> modelClass) {
-    ModelStructure<T> s = (ModelStructure<T>)allModels.get(modelClass);
+    ModelStructure<T> s = (ModelStructure<T>)allModels.get(modelMap.get(modelClass));
     return s.create();
   }
 
   @SuppressWarnings("unchecked")
   public <T extends Model> T find(Class<T> modelClass, long id) {
-    ModelStructure<T> s = (ModelStructure<T>)allModels.get(modelClass);
+    ModelStructure<T> s = (ModelStructure<T>)allModels.get(modelMap.get(modelClass));
     return s.get(id);
   }
 
@@ -206,15 +258,22 @@ public class Schema {
 
   // interceptor implementation
   private class InterceptorMap {
-    private Map<Class, Map<Integer, Set<Interceptor>>> interceptors = new HashMap<>();
+    // All the interceptors mapped by table names
+    private Map<String, Map<Integer, Set<Interceptor>>> interceptors = new HashMap<>();
 
     public void add(Class clazz, Interceptor interceptor) {
+      String name = modelMap.get(clazz);
+
+      if (name == null) {
+        throw new DatabaseException("Trying to add interceptor on class " + clazz + " which is not registered on the Schema", null);
+      }
+
       Map<Integer, Set<Interceptor>> typedInterceptor =
-              interceptors.get(clazz);
+              interceptors.get(name);
 
       if (typedInterceptor == null) {
         typedInterceptor = new HashMap<>();
-        interceptors.put(clazz, typedInterceptor);
+        interceptors.put(name, typedInterceptor);
       }
 
       int type = interceptor.getType();
@@ -250,8 +309,13 @@ public class Schema {
     }
 
     public void remove(Class clazz, Interceptor interceptor) {
+      String name = modelMap.get(clazz);
+      if (name == null) {
+        return;
+      }
+
       Map<Integer, Set<Interceptor>> typedInterceptor =
-              interceptors.get(clazz);
+              interceptors.get(name);
 
       if (typedInterceptor == null) {
         // Since none found, no need to go further
@@ -264,8 +328,12 @@ public class Schema {
     }
 
     public void fire(Class clazz, Integer type, Object data) {
+      String name = modelMap.get(clazz);
+      if(name == null) {
+        return;
+      }
       Map<Integer, Set<Interceptor>> typedInterceptor =
-              interceptors.get(clazz);
+              interceptors.get(name);
       if (typedInterceptor == null) {
         // No interceptors available to fire anything
         return;
