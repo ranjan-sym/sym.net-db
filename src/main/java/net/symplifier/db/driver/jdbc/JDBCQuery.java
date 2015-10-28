@@ -63,7 +63,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
         Column col = columns[i].column;
         JDBCField field = fields[idx];
         Object value = field.get(rs, idx+1);
-        row.set(col.getIndex(), value);
+        row.set(col.getIndex(), value, false);
       }
 
       // Stage 2. Load parent level columns if any
@@ -76,7 +76,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
           Column col = parent.columns[i].column;
           JDBCField field = fields[idx];
           Object value = field.get(rs, idx+1);
-          parentRow.set(col.getIndex(), value);
+          parentRow.set(col.getIndex(), value, false);
         }
       }
 
