@@ -824,6 +824,7 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
     private final boolean columnsOrder[];
     private String name;
 
+    @SafeVarargs
     public Index(Column<M, ?> ... columns) {
       this(false, columns);
     }
