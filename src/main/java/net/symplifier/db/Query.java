@@ -346,12 +346,14 @@ public interface Query<T extends Model> {
 //      return this;
 //    }
 
-    public <U extends Model> Builder<T> join(Reference<? super T, U> reference, Column<U, ?> ... columns) {
+    @SafeVarargs
+    public final <U extends Model> Builder<T> join(Reference<? super T, U> reference, Column<U, ?> ... columns) {
       joins.add(new Join<>(reference, columns));
       return this;
     }
 
-    public <U extends Model> Builder<T> join(Join<U> join, Column<U, ?> ... columns) {
+    @SafeVarargs
+    public final <U extends Model> Builder<T> join(Join<U> join, Column<U, ?> ... columns) {
       Collections.addAll(join.fields, columns);
       joins.add(join);
       return this;
