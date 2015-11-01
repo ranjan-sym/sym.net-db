@@ -65,8 +65,9 @@ public class ModelInstance<M extends ModelInstance> implements Model {
    *
    * @param primaryRow
    */
-  public void init(ModelRow primaryRow) {
+  public void init(ModelRow primaryRow, boolean isNew) {
     assert(primaryRow.getStructure().getType() == this.getClass());
+    this.isNew = isNew;
     set = new ModelSet(primaryRow.getStructure(), primaryRow);
   }
 
@@ -245,6 +246,10 @@ public class ModelInstance<M extends ModelInstance> implements Model {
     }
   }
 
+  // Flag to see if the primary model is actual an insert or a update
+  // The new flag is set to false only after the record as been saved or
+  // when the record is loaded from the database and is accessible from ModelStructure
+  private volatile boolean isNew = true;
   private final Map<Relation.HasMany, RelationalData> hasManyData = new LinkedHashMap<>();
   private final Map<Column.Reference, Model> referencedData = new LinkedHashMap<>();
 
@@ -510,7 +515,9 @@ public class ModelInstance<M extends ModelInstance> implements Model {
     }
 
     // Flag to see if the primary model is actual an insert or a update
-    boolean isNew = this.getId() == null;
+    // The new flag is set to false only after the record as been saved or
+    // when the record is loaded from the database
+    // boolean isNew = true;
 
     // Stage 2 - Save all the implementations
     ModelStructure structure = this.getStructure();
@@ -614,6 +621,7 @@ public class ModelInstance<M extends ModelInstance> implements Model {
 
     isModified = false;
     saving = false;
+    isNew = false;
     return true;
   }
 
@@ -656,8 +664,16 @@ public class ModelInstance<M extends ModelInstance> implements Model {
     // now the references
     // first is the BelongsTo reference
     for(Map.Entry<Column.Reference, Model> entry:this.referencedData.entrySet()) {
-      updateJSON(o, entry.getKey().getRelationName(),
-              entry.getValue().toJSON(level+1));
+      String name = entry.getKey().getRelationName();
+      if(name.equals("id")) {
+        name = entry.getKey().getTargetType().getTableName();
+      }
+      Model value = entry.getValue();
+      if (value == null) {
+        updateJSON(o, name, null);
+      } else {
+        updateJSON(o, name, value.toJSON(level + 1));
+      }
     }
     // Next is the has many relation
     for(Map.Entry<Relation.HasMany, RelationalData> entry: this.hasManyData.entrySet()) {
