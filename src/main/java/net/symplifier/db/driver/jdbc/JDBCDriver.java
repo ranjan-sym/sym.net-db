@@ -126,7 +126,10 @@ public abstract class JDBCDriver implements Driver, Session.Listener {
       builder.append(getTypeName(col.getValueType()));
 
       if (col.isPrimary()) {
-        builder.append(" PRIMARY KEY AUTOINCREMENT");
+        builder.append(" PRIMARY KEY");
+      }
+      if (col instanceof Column.Primary) {
+        builder.append(" AUTOINCREMENT");
       }
 
       if (!col.canBeNull()) {
