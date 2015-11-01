@@ -1,10 +1,9 @@
 package net.symplifier.db;
 
+import net.symplifier.core.application.Session;
 import net.symplifier.db.annotations.Table;
 import net.symplifier.db.exceptions.DatabaseException;
-import net.symplifier.db.exceptions.ModelException;
 import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -16,7 +15,7 @@ import java.util.*;
  */
 public class Schema {
   public static final SimpleDateFormat ISO_8601_DATE_TIME
-          = new SimpleDateFormat("YYYY-MM-DD'T'HH:mm:ss'Z'") {{
+          = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'") {{
     this.setTimeZone(TimeZone.getTimeZone("UTC"));
   }};
 
@@ -249,7 +248,12 @@ public class Schema {
   @SuppressWarnings("unchecked")
   public <T extends Model> T find(Class<T> modelClass, long id) {
     ModelStructure<T> s = (ModelStructure<T>)allModels.get(modelMap.get(modelClass));
-    return s.get(id);
+    return s.find(id);
+  }
+
+  public <T> T runSQL(String sql, Class<T> returnType, Object ... sqlValues) {
+    DBSession session = Session.get(Schema.get(), DBSession.class);
+    return getDriver().runSQL(session, sql, returnType, sqlValues);
   }
 
   public <T> T runSQL(DBSession session, String sql, Class<T> returnType, Object ... sqlValues) {
