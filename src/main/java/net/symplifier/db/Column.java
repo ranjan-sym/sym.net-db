@@ -6,10 +6,7 @@ import net.symplifier.db.exceptions.ModelException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * The basic model components that identifies a column in a table
@@ -391,6 +388,51 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
   }
 
 
+  public static class OneToOneBackRef<T extends Model, M extends Model>
+        extends Column.Reference<T, M> {
+    private final OneToOneReference<M, T> sourceReference;
+
+    public OneToOneBackRef(OneToOneReference<M, T> source) {
+      super(source.getSourceType().getType());
+      this.sourceReference = source;
+    }
+
+    @Override
+    public String getRelationName() {
+      return sourceReference.getName();
+    }
+
+    @Override
+    public void setRelationName(String name) {
+      assert(sourceReference.getName().equals(name));
+    }
+
+    @Override
+    public ModelStructure<T> getSourceType() {
+      return sourceReference.getTargetType();
+    }
+
+    @Override
+    public ModelStructure<M> getTargetType() {
+      return sourceReference.getSourceType();
+    }
+
+    @Override
+    public String getSourceFieldName() {
+      return sourceReference.getTargetFieldName();
+    }
+
+    @Override
+    public String getTargetFieldName() {
+      return sourceReference.getSourceFieldName();
+    }
+
+    @Override
+    public void onInitReference(ModelStructure<T> owner) {
+      // No need to do anything
+    }
+  }
+
   /**
    * A reference column that points to another model
    *
@@ -438,7 +480,12 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
 
     @Override
     protected String generateFieldName() {
-      return super.generateFieldName() + "_id";
+      String t = super.generateFieldName();
+      if (t.equals("id") || t.endsWith("_id")) {
+        return t;
+      } else {
+        return t + "_id";
+      }
     }
 
     @Override
@@ -459,6 +506,36 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
     @Override
     public java.lang.String getTargetFieldName() {
       return referenceModel.getPrimaryKeyField();
+    }
+  }
+
+  /**
+   * A special type of column reference for one to one relationship, This
+   * reference is helpful for making forward as well as backward joins
+   *
+   * @param <M>
+   * @param <T>
+   */
+  public static class OneToOneReference<M extends Model, T extends Model>
+          extends Reference<M, T> {
+
+    private final boolean isPrimary;
+    public OneToOneReference(Class<T> referenceType, boolean isPrimary) {
+      super(referenceType, isPrimary ? new Builder<Long>() : (new Builder<Long>().setUnique()));
+      this.isPrimary = isPrimary;
+    }
+
+    public OneToOneBackRef<T, M> getOneToOneBackRef() {
+      return new OneToOneBackRef<>(this);
+    }
+
+    @Override
+    public boolean isPrimary() {
+      return isPrimary;
+    }
+
+    public Query.Join<M> join() {
+      return new Query.Join<M>(this);
     }
   }
 
@@ -814,6 +891,14 @@ public abstract class Column<M extends Model, T> implements Query.FilterEntity {
 
     public String getTypeText() {
       return "DATE" + getThreshold();
+    }
+
+    public Query.Filter<M> dayOn(java.util.Date date) {
+      Calendar cal = Calendar.getInstance();
+      cal.setTime(date);
+      cal.set(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH), 0, 0, 0);
+      date = cal.getTime();
+      return gtEq(date).and(lt(new java.util.Date(date.getTime() + 86400000L)));
     }
   }
 
