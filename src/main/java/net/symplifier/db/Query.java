@@ -113,13 +113,18 @@ public interface Query<T extends Model> {
     }
 
     public Filter<T> and(Filter<T> filter) {
-      entities.add(FilterOp.and);
+      if (entities.size() != 0) {
+        entities.add(FilterOp.and);
+      }
+
       entities.add(filter);
       return this;
     }
 
     public Filter<T> or(Filter<T> filter) {
-      entities.add(FilterOp.or);
+      if (entities.size() != 0) {
+        entities.add(FilterOp.or);
+      }
       entities.add(filter);
       return this;
     }
@@ -301,14 +306,16 @@ public interface Query<T extends Model> {
       return this;
     }
 
-    public Builder<T> asc(Column<? super T, ?> ... columns) {
+    @SafeVarargs
+    public final Builder<T> asc(Column<? super T, ?> ... columns) {
       for(Column<? super T, ?> col:columns) {
         this.orderBy.add(new Order(col, false));
       }
       return this;
     }
 
-    public Builder<T> desc(Column<? super T, ?> ... columns) {
+    @SafeVarargs
+    public final Builder<T> desc(Column<? super T, ?> ... columns) {
       for(Column<? super T, ?> col:columns) {
         this.orderBy.add(new Order(col, true));
       }
@@ -353,6 +360,19 @@ public interface Query<T extends Model> {
     }
 
     @SafeVarargs
+    public final <U extends Model> Builder<T> join(Reference<? super T, U> reference, Class<? extends U> modelClass, Column<U, ?> ... columns) {
+      joins.add(new Join<>(reference, modelClass, columns));
+      return this;
+    }
+
+
+    @SafeVarargs
+    public final <U extends Model> Builder<T> join(Column.OneToOneReference<U, ? extends T> reference, Column<U, ?> ... columns) {
+      joins.add(new Join<>(reference, columns));
+      return this;
+    }
+
+    @SafeVarargs
     public final <U extends Model> Builder<T> join(Join<U> join, Column<U, ?> ... columns) {
       Collections.addAll(join.fields, columns);
       joins.add(join);
@@ -374,10 +394,26 @@ public interface Query<T extends Model> {
      * @param reference The reference column of the model to use for join
      * @param columns The fields of the joining model that needs to be retrieved
      */
+    @SafeVarargs
     public Join(Reference<?, T> reference, Column<T, ?> ... columns) {
       this(reference.getTargetType(), reference, null, columns);
     }
 
+    @SafeVarargs
+    public Join(Reference<?, T> reference, Class<? extends T> modelClass, Column<T, ?> ... columns) {
+      this(Schema.get().getModelStructure(modelClass), reference, null, columns);
+    }
+
+    /**
+     * The join used for making a backwards join using the one to one reference.
+     * For forward joins, the constructor with Reference will be applicable
+     *
+     * @param reference The one to one reference on the target model
+     */
+    @SafeVarargs
+    public Join(Column.OneToOneReference<T, ?> reference, Column<T, ?> ... columns) {
+      this(reference.getModel(), reference.getOneToOneBackRef(), null, columns);
+    }
     /**
      * Creates a join based on a reference column and includes record filter
      * criteria. The filter criteria is not used while joining the models
@@ -388,15 +424,17 @@ public interface Query<T extends Model> {
      * @param filter The filter criteria for filtering records
      * @param columns
      */
-
+    @SafeVarargs
     public Join(Reference<?, T> reference, Filter<T> filter, Column<T, ?> ... columns) {
       this(reference.getTargetType(), reference, filter, columns);
     }
 
+    @SafeVarargs
     public Join(ModelStructure<T> model, Reference<?, ? super T> reference, Column<T, ?> ... columns) {
       this(model, reference, null, columns);
     }
 
+    @SafeVarargs
     public Join(ModelStructure<T> model, Reference<?, ? super T> reference, Filter<T> filter, Column<T, ?> ... columns) {
       this.model = model;
       this.reference = reference;
@@ -413,11 +451,13 @@ public interface Query<T extends Model> {
       }
     }
 
-    public void asc(Column<? super T, ?> ... columns) {
+    @SafeVarargs
+    public final void asc(Column<? super T, ?> ... columns) {
       orderBy(columns, false);
     }
 
-    public void desc(Column<T, ?> ... columns) {
+    @SafeVarargs
+    public final void desc(Column<T, ?> ... columns) {
       orderBy(columns, true);
     }
 
@@ -464,6 +504,14 @@ public interface Query<T extends Model> {
     }
 
     public <U extends Model> Join<T> join(Reference<? super T, U> reference) {
+      return join(new Join<U>(reference));
+    }
+
+    public <U extends Model> Join<T> join(Reference<? super T, U> reference, Class<? extends U> model) {
+      return join(new Join<U>(reference, model));
+    }
+
+    public <U extends Model> Join<T> join(Column.OneToOneReference<U, ? extends T> reference) {
       return join(new Join<U>(reference));
     }
 
