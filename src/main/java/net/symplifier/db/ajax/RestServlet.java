@@ -1,9 +1,12 @@
 package net.symplifier.db.ajax;
 
 import net.symplifier.db.*;
+import net.symplifier.db.annotations.Rpc;
+import net.symplifier.db.annotations.RpcParameter;
 import net.symplifier.db.exceptions.DatabaseException;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
@@ -11,17 +14,28 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Parameter;
 import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Base64;
 import java.util.Date;
+import java.util.TimeZone;
 
 /**
  * Created by ranjan on 8/24/15.
  */
 public class RestServlet extends HttpServlet {
+  public static final SimpleDateFormat ISO8601_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") {{
+    this.setTimeZone(TimeZone.getTimeZone("UTC"));
+  }};
+
   private Model jsonToModel(ModelStructure model, JSONObject object) {
 //    long id = object.optLong("id", 0);
 //    ModelInstance obj;
@@ -76,6 +90,126 @@ public class RestServlet extends HttpServlet {
 
     // First try to find out the model structure
     return Schema.get().getModelStructure(uri);
+  }
+
+  @Override
+  protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    // let's see if this is an rpc call
+    String uri = request.getPathInfo();
+    // Strip out the starting and trailing '/'
+    uri = StringUtils.strip(uri, "/");
+
+    if (uri.startsWith("rpc/")) {
+      doRPC(uri.substring(4), request, response);
+    }
+  }
+
+  private void doRPC(String modelName, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    ModelStructure model = Schema.get().getModelStructure(modelName);
+    if (model == null) {
+      response.sendError(HttpServletResponse.SC_NOT_FOUND, "The resource was not found on the system");
+      return;
+    }
+
+    // First get the id of the model record
+    long id;
+    try {
+      id = Long.parseLong(request.getParameter("id"));
+    } catch(NumberFormatException e) {
+      response.sendError(HttpServletResponse.SC_NOT_FOUND, "Invalid resource id " + request.getParameter("id"));
+      return;
+    }
+
+    Class<? extends Model> modelClass = model.getType();
+    String method = request.getParameter("method");
+    JSONTokener tokener = new JSONTokener(request.getParameter("parameters"));
+    Object tmp = tokener.nextValue();
+    if (!(tmp instanceof JSONObject)) {
+      response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Parameters not found for RPC");
+      return;
+    }
+    JSONObject reqParameters = (JSONObject)tmp;
+
+    for(Method rMethod:modelClass.getMethods()) {
+      Rpc rpc = rMethod.getAnnotation(Rpc.class);
+      if (rpc == null || !rpc.value().equals(method)) {
+        continue;
+      }
+
+      // We got ourselves a method to execute
+      Object parameters[] = new Object[rMethod.getParameterCount()];
+      int i=0;
+      for(Parameter rParameter:rMethod.getParameters()) {
+        RpcParameter ann = rParameter.getAnnotation(RpcParameter.class);
+        if (ann == null) {
+          response.sendError(HttpServletResponse.SC_BAD_REQUEST, "RPC method does not have proper RpcParameter annotation");
+          return;
+        }
+
+        String parameterName = ann.value();
+        if (!reqParameters.has(parameterName)) {
+          response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Parameter " + parameterName + " not provided with the request");
+          return;
+        }
+
+        Class<?> parameterType = rParameter.getType();
+        try {
+          if (reqParameters.isNull(parameterName)) {
+            parameters[i] = null;
+          } else if (parameterType == String.class) {
+            parameters[i] = reqParameters.getString(parameterName);
+          } else if (parameterType == Integer.TYPE || parameterType == Integer.class) {
+            parameters[i] = reqParameters.getInt(parameterName);
+          } else if (parameterType == Date.class) {
+            parameters[i] = ISO8601_FORMAT.parse(reqParameters.getString(parameterName));
+          } else if (parameterType == Boolean.TYPE || parameterType == Boolean.class) {
+            parameters[i] = reqParameters.getBoolean(parameterName);
+          } else if (parameterType == Double.TYPE || parameterType == Double.class) {
+            parameters[i] = reqParameters.getDouble(parameterName);
+          } else if (parameterType == Long.TYPE || parameterType == Long.class) {
+            parameters[i] = reqParameters.getLong(parameterName);
+          } else {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Parameter " + parameterName + " is not a supported type (String, Integer, Date, Boolean, Double, Long)");
+            return;
+          }
+        } catch(JSONException | ParseException e) {
+          response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Parameter " + parameterName + " is not compatible with the request");
+          return;
+        }
+      }
+
+
+      String res = "";
+      try {
+        if (id == 0) {
+          if ((rMethod.getModifiers() & Modifier.STATIC) == Modifier.STATIC) {
+            // Call the static method
+            res = rMethod.invoke(null, parameters).toString();
+          } else {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "The method is not declared static");
+            return;
+          }
+        } else {
+          if ((rMethod.getModifiers() & Modifier.STATIC) == Modifier.STATIC) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "The method is declared static");
+            return;
+          } else {
+            Model obj = Schema.get().find(modelClass, id);
+            if (obj == null) {
+              response.sendError(HttpServletResponse.SC_NOT_FOUND, "The resource with id " + id + " is not found");
+              return;
+            }
+            res = rMethod.invoke(obj, parameters).toString();
+          }
+        }
+      } catch(IllegalAccessException | InvocationTargetException e) {
+        e.printStackTrace();
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
+        return;
+      }
+      response.setHeader("ContentType", "application/json");
+      response.getWriter().write(res);
+    }
   }
 
   @Override
