@@ -1,8 +1,9 @@
 package net.symplifier.db.driver.jdbc;
 
-import net.symplifier.core.application.Session;
 import net.symplifier.db.*;
 import net.symplifier.db.exceptions.DatabaseException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.sql.*;
 import java.util.*;
@@ -13,6 +14,7 @@ import java.util.*;
  * Created by ranjan on 7/29/15.
  */
 public class JDBCQuery<M extends Model> implements Query<M> {
+  public static final Logger LOGGER = LogManager.getLogger(JDBCQuery.class);
 
   private static class QueryColumn {
     private final Column column;
@@ -46,7 +48,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
 
       if (seed == null) {
         ModelRow row = model.getRow(id);
-        seed = (ModelInstance)model.create(row);
+        seed = (ModelInstance)model.create(row, false);
         return recursiveLoad(rs, row, seed);
       } else if(!id.equals(seed.getId())) {
         return null;
@@ -96,7 +98,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
           ModelInstance child = seed.get(ref, id);
           if (child == null) {
             ModelRow newRow = m.model.getRow(id);
-            child = (ModelInstance) m.model.create(newRow);
+            child = (ModelInstance) m.model.create(newRow, false);
             seed.set(ref, id, child);
             m.recursiveLoad(rs, newRow, child);
           } else {
@@ -304,6 +306,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
     @SuppressWarnings("unchecked")
     public Result<M> execute() {
       try {
+        String params = "";
         for (int i = 0; i < parameters.size(); ++i) {
           Parameter p = parameters.get(i);
           Object v = values.get(p);
@@ -311,11 +314,14 @@ public class JDBCQuery<M extends Model> implements Query<M> {
             v = p.getDefault();
           }
 
-
+          params += v == null ? "NULL" : v.toString() + ", ";
           ((JDBCParameter) p.getSetter()).set(statement, i + 1, v);
         }
 
+        LOGGER.debug("Executing SQL - " + getSQL());
+        LOGGER.debug("Parameters - " + params);
         ResultSet rs = statement.executeQuery();
+
         return new JDBCResult<>(JDBCQuery.this, rs);
       } catch(SQLException e) {
         throw new DatabaseException("Error while executing sql", e);
@@ -508,7 +514,8 @@ public class JDBCQuery<M extends Model> implements Query<M> {
     for(Query.Join join:joins) {
 
       Reference reference = join.getReference();
-      ModelMap newMap = new ModelMap(reference.getTargetType());
+      ModelStructure joinModel = join.getModel();
+      ModelMap newMap = new ModelMap(joinModel);
       parentModel.relations.put(reference, newMap);
 
       Alias joinAlias = new Alias(newMap, join.filter(), join.getOrderBy());
@@ -519,14 +526,14 @@ public class JDBCQuery<M extends Model> implements Query<M> {
         String alias = "I" + (++aliasNumber);
         makeJoin(sqlBuffer, "LEFT", intermediate.getTableName(), parentAlias.toString(), parent.getPrimaryKeyField(), alias, reference.getSourceFieldName());
         //joinAlias = new Alias(reference.getTargetType(), join.filter());
-        makeJoin(sqlBuffer, "LEFT", reference.getTargetType().getTableName(), alias, reference.getTargetFieldName(), joinAlias.toString(), reference.getTargetType().getPrimaryKeyField());
+        makeJoin(sqlBuffer, "LEFT", joinModel.getTableName(), alias, reference.getTargetFieldName(), joinAlias.toString(), joinModel.getPrimaryKeyField());
       } else {
         //joinAlias = new Alias(reference.getTargetType(), join.filter());
-        makeJoin(sqlBuffer, "LEFT", reference.getTargetType().getTableName(), parentAlias.toString(), reference.getSourceFieldName(), joinAlias.toString(), reference.getTargetFieldName());
+        makeJoin(sqlBuffer, "LEFT", joinModel.getTableName(), parentAlias.toString(), reference.getSourceFieldName(), joinAlias.toString(), reference.getTargetFieldName());
       }
 
 
-      buildJoins(newMap, sqlBuffer, joinAlias, reference.getTargetType(), join.getJoinChildren());
+      buildJoins(newMap, sqlBuffer, joinAlias, joinModel, join.getJoinChildren());
 
     }
   }
