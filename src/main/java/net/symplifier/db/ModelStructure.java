@@ -207,7 +207,18 @@ public class ModelStructure<T extends Model> {
             references.put(f.getName(), ref);
 
             // Each reference of type one to many will have a foreign key index
-            if (ref instanceof Column.Reference) {
+            if (ref instanceof Column.OneToOneReference) {
+              ModelStructure oneToOneParent = ref.getTargetType();
+              oneToOneParent.references.put(this.getTableName(), ((Column.OneToOneReference) ref).getOneToOneBackRef());
+
+              // if the one to one reference is not marked as primary key then
+              // create a index
+              if (!((Column.OneToOneReference) ref).isPrimary()) {
+                Column.Index idx = new Column.Index(true, (Column.Reference)ref);
+                idx.setName("FK_" + f.getName());
+                indexes.add(idx);
+              }
+            } else if (ref instanceof Column.Reference) {
               Column.Index idx = new Column.Index((Column.Reference)ref);
               idx.setName("FK_" + f.getName());
               indexes.add(idx);
@@ -288,13 +299,14 @@ public class ModelStructure<T extends Model> {
     return schema;
   }
 
-  public T create(ModelRow row) {
+  public T create(ModelRow row, boolean isNew) {
 
     try {
       ModelInstance m = (ModelInstance) this.getType().newInstance();
-      m.init(row);
+      m.init(row, isNew);
       return (T)m;
     } catch (InstantiationException e) {
+      System.err.println("Could not create model - " + this.getType().getCanonicalName());
       e.printStackTrace();
     } catch (IllegalAccessException e) {
       e.printStackTrace();
@@ -309,7 +321,7 @@ public class ModelStructure<T extends Model> {
    * @return ModelInstance
    */
   public T createDefault() {
-    T res = create();
+    T res = create(new ModelRow(this), true);
     // Go through all the columns and set them with the default
     for(Column c:columns) {
       Object def = c.getDefaultValue();
@@ -332,12 +344,11 @@ public class ModelStructure<T extends Model> {
   }
 
   /**
-   * Creates an instance of the Model with null for
-   * all the values even if column may have defaults set
+   * Creates an instance of the Model with default values set
    * @return ModelInstance
    */
   public T create() {
-    return create(new ModelRow(this));
+    return createDefault();
   }
 
   public ModelRow getRow(long id) {
@@ -349,8 +360,19 @@ public class ModelStructure<T extends Model> {
     }
   }
 
+  public T find(long id) {
+    ModelRow row = rowCache.getIfPresent(id);
+    if (row == null) {
+      Column<T, Long> idCol = (Column<T, Long>)columns.get(0);
+      Query.Result<T> res = query().where(idCol.eq(id)).build().execute();
+      return res.next();
+    } else {
+      return create(row, false);
+    }
+  }
+
   public T get(long id) {
-    return create(getRow(id));
+    return create(getRow(id), false);
   }
 
   public int getColumnCount() {
