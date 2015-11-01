@@ -140,6 +140,15 @@ public interface Reference<M extends Model, T extends Model> {
     return j.join(reference);
   }
 
+  default <U extends Model> Query.Join<T> join(Reference<? super T, U> reference, Class<? extends U> model) {
+    Query.Join<T> j = new Query.Join<>(this);
+    return j.join(reference, model);
+  }
+//
+//  default <U extends Model> Query.Join<T> join(Column.OneToOneReference<U, ? extends T> target) {
+//    return join(new Query.Join<>(target.getOneToOneBackRef()));
+//  }
+
   /**
    * Join another model with filters through a referenced model. A helper
    * mechanism to join after a filter has been applied on the source reference
