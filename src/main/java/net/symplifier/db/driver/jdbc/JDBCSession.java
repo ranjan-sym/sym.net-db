@@ -107,7 +107,7 @@ public class JDBCSession extends DBSession {
 
     sql.append("INSERT INTO ").append(structure);
 
-    sql.append(structure.getColumns(), row.getData(), needId?1:0);
+    sql.append(structure.getColumns(), row.getData(), 0);
 
     String sqlText = sql.getSQL();
     System.out.println(sqlText);
