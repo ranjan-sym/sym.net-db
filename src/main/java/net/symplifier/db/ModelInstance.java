@@ -69,7 +69,21 @@ public class ModelInstance<M extends ModelInstance> implements Model {
     assert(primaryRow.getStructure().getType() == this.getClass());
     this.isNew = isNew;
     set = new ModelSet(primaryRow.getStructure(), primaryRow);
+
+    // TODO, looks like we can do away with the isNew Flag here since another init function does just that but testing needed
+    if (isNew) {
+      onCreate();
+    } else {
+      onLoad();
+    }
   }
+
+  /**
+   * Callback method which is invoked when the ModelInstance is loaded from
+   * existing record
+   */
+  public void onLoad() {}
+
 
   /**
    * A new model created through a schema
@@ -78,7 +92,14 @@ public class ModelInstance<M extends ModelInstance> implements Model {
   public void init(Schema schema) {
     ModelStructure s = schema.getModelStructure(getClass());
     set = new ModelSet(s, new ModelRow(s));
+
+    onCreate();
   }
+
+  /**
+   * Callback method which is invoked when the ModelInstance is created
+   */
+  public void onCreate() {}
 
   @Override
   public ModelStructure<M> getStructure() {
@@ -151,7 +172,7 @@ public class ModelInstance<M extends ModelInstance> implements Model {
    * @param parentRow the row that is being loaded
    */
   public void setParentRow(int l, ModelRow parentRow) {
-    assert(set.allRows[l] == null);
+    assert(set.allRows[l] == null || set.allRows[l] == parentRow);
     set.allRows[l] = parentRow;
   }
 
@@ -697,5 +718,34 @@ public class ModelInstance<M extends ModelInstance> implements Model {
     } else {
       obj.put(key, value);
     }
+  }
+
+  public Object getValueFromColumnName(String columnName) {
+    return get(getStructure().getColumn(columnName));
+  }
+
+  @Override
+  public String toString() {
+    ModelStructure m = this.getStructure();
+    StringBuilder builder = new StringBuilder();
+    List<Column> columns = m.getColumns();
+    boolean first = true;
+
+    builder.append(m.getTableName());
+    builder.append('{');
+    for(Column c:columns) {
+      if (!first) {
+        builder.append(',');
+      }
+      builder.append(c.getFieldName());
+      builder.append(':');
+      Object v = get(c);
+      builder.append(v == null ? "<NULL>" : v.toString());
+
+      first = false;
+    }
+    builder.append('}');
+
+    return builder.toString();
   }
 }

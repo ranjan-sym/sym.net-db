@@ -50,6 +50,14 @@ public interface Driver {
   <T extends Model> Query<T> createQuery(Query.Builder<T> builder);
 
   /**
+   * Insert the data for given ModelStructure.
+   * @param modelStructure Structure of data
+   * @param data The data to insert
+   * @return ID of inserted data
+   */
+  Long doInsert(ModelStructure modelStructure, Object[] data);
+
+  /**
    * Run the given SQL and return the result
    *
    * @param sql

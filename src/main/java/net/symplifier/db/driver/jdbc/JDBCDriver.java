@@ -2,6 +2,7 @@ package net.symplifier.db.driver.jdbc;
 
 import net.symplifier.core.application.Session;
 import net.symplifier.db.*;
+import net.symplifier.db.Driver;
 import net.symplifier.db.exceptions.DatabaseException;
 import org.apache.commons.dbcp2.*;
 import org.apache.commons.pool2.ObjectPool;
@@ -10,14 +11,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
+import java.util.*;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * The JDBCDriver for ORM
@@ -27,8 +23,10 @@ import java.util.Map;
 public abstract class JDBCDriver implements Driver, Session.Listener {
   public static final Logger LOGGER = LogManager.getLogger(JDBCDriver.class);
 
-  private DataSource dataSource;
+  protected DataSource dataSource;
   private final Schema schema;
+  protected Connection connection;
+
   @Override
   public JDBCParameter getParameterSetter(Class type) {
     return PARAMETER_SETTERS.get(type);
@@ -203,6 +201,53 @@ public abstract class JDBCDriver implements Driver, Session.Listener {
   }
 
   @Override
+  public Long doInsert(ModelStructure modelStructure, Object[] data) {
+    SQLBuilder sql = new SQLBuilder(this);
+
+    boolean needId = data[0] == null;
+
+    sql.append("INSERT INTO ").append(modelStructure);
+    List<Column> columns = modelStructure.getColumns();
+
+    sql.append(columns, data, 0);
+
+    Connection connection = null;
+    try {
+      connection = dataSource.getConnection();
+    } catch (SQLException e) {
+      e.printStackTrace();
+      // TODO Handle this (Urgent)
+    }
+
+    String sqlText = sql.getSQL();
+    System.out.println(sqlText);
+    try (PreparedStatement statement = connection.prepareStatement(sqlText,
+              needId ? Statement.RETURN_GENERATED_KEYS : Statement.NO_GENERATED_KEYS )) {
+      List<Query.Parameter> parameters = sql.getParameters();
+      for (int i = 0; i < parameters.size(); ++i) {
+        Query.Parameter parameter = parameters.get(i);
+        JDBCParameter p = (JDBCParameter) parameter.getSetter();
+        p.set(statement, i + 1, parameter.getDefault());
+      }
+
+      int affectedRows = statement.executeUpdate();
+      if (affectedRows == 0) {
+        throw new DatabaseException("Inserting record failed", null);
+      }
+      if (needId) {
+        try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
+          if (generatedKeys.next()) {
+            return generatedKeys.getLong(1);
+          }
+        }
+      }
+    } catch(SQLException e) {
+      throw new DatabaseException("An error occurred while trying to insert record", e);
+    }
+    return null;
+  }
+
+  @Override
   public <T> T runSQL(DBSession session, String sql, Class<T> returnType, Object ... sqlValues) {
     JDBCSession jdbcSession = (JDBCSession)session;
     JDBCField<T> field = null;
@@ -252,7 +297,7 @@ public abstract class JDBCDriver implements Driver, Session.Listener {
   @Override
   public void onSessionBegin(Session session) {
     try {
-      JDBCSession s = new JDBCSession(this, dataSource.getConnection());
+      JDBCSession s = new JDBCSession(this, connection = dataSource.getConnection());
       s.beginTransaction(schema);
       session.attach(schema, s);
     } catch(SQLException e) {
@@ -285,7 +330,7 @@ public abstract class JDBCDriver implements Driver, Session.Listener {
    * @param name the field name to be formatted
    * @return formatted field name
    */
-  protected String formatFieldName(String name) {
+  protected String quote(String name) {
     return name;
   }
 

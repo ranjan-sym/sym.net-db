@@ -100,40 +100,11 @@ public class JDBCSession extends DBSession {
   @SuppressWarnings("unchecked")
   public void doInsert(ModelRow row) {
     ModelStructure structure = row.getStructure();
-    SQLBuilder sql = new SQLBuilder();
+    SQLBuilder sql = new SQLBuilder(driver);
 
+    Long id = driver.doInsert(structure, row.getData());
 
-    boolean needId = row.get(0) == null;
-
-    sql.append("INSERT INTO ").append(structure);
-
-    sql.append(structure.getColumns(), row.getData(), 0);
-
-    String sqlText = sql.getSQL();
-    System.out.println(sqlText);
-    try (PreparedStatement statement = connection.prepareStatement(sqlText,
-              needId ? Statement.RETURN_GENERATED_KEYS : Statement.NO_GENERATED_KEYS )) {
-      List<Query.Parameter> parameters = sql.getParameters();
-      for (int i = 0; i < parameters.size(); ++i) {
-        Query.Parameter parameter = parameters.get(i);
-        JDBCParameter p = (JDBCParameter) parameter.getSetter();
-        p.set(statement, i + 1, parameter.getDefault());
-      }
-
-      int affectedRows = statement.executeUpdate();
-      if (affectedRows == 0) {
-        throw new DatabaseException("Inserting record failed", null);
-      }
-      if (needId) {
-        try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
-          if (generatedKeys.next()) {
-            row.set(0, generatedKeys.getLong(1));
-          }
-        }
-      }
-    } catch(SQLException e) {
-      throw new DatabaseException("An error occurred while trying to insert record", e);
-    }
+    row.set(0, id);
 
     row.clearFlag();
   }
@@ -142,7 +113,7 @@ public class JDBCSession extends DBSession {
   @SuppressWarnings("unchecked")
   public void doUpdate(ModelRow row, long id) {
     ModelStructure structure = row.getStructure();
-    SQLBuilder updateSql = new SQLBuilder();
+    SQLBuilder updateSql = new SQLBuilder(driver);
 
     updateSql.append("UPDATE ").append(structure);
     updateSql.append(" SET ");
@@ -196,7 +167,7 @@ public class JDBCSession extends DBSession {
     ModelStructure structure = row.getStructure();
     StringBuilder sql = new StringBuilder();
     sql.append("DELETE FROM ");
-    sql.append(driver.formatFieldName(structure.getTableName()));
+    sql.append(driver.quote(structure.getTableName()));
     sql.append(" WHERE ");
     sql.append(structure.getPrimaryKeyField());
     sql.append('=');
@@ -213,13 +184,13 @@ public class JDBCSession extends DBSession {
   public void doDeleteIntermediate(ModelStructure intermediate, Relation.HasMany ref, long sourceId, long childId) {
     StringBuilder sql = new StringBuilder();
     sql.append("DELETE FROM ");
-    sql.append(driver.formatFieldName(intermediate.getTableName()));
+    sql.append(driver.quote(intermediate.getTableName()));
     sql.append(" WHERE ");
-    sql.append(driver.formatFieldName(ref.getSourceFieldName()));
+    sql.append(driver.quote(ref.getSourceFieldName()));
     sql.append('=');
     sql.append(sourceId);
     sql.append(" AND ");
-    sql.append(driver.formatFieldName(ref.getTargetFieldName()));
+    sql.append(driver.quote(ref.getTargetFieldName()));
     sql.append('=');
     sql.append(childId);
 
@@ -236,13 +207,13 @@ public class JDBCSession extends DBSession {
     // Only insert a record if there isn't already a record there
     StringBuilder sql = new StringBuilder();
     sql.append("SELECT * FROM ");
-    sql.append(driver.formatFieldName(intermediate.getTableName()));
+    sql.append(driver.quote(intermediate.getTableName()));
     sql.append(" WHERE ");
-    sql.append(driver.formatFieldName(ref.getSourceFieldName()));
+    sql.append(driver.quote(ref.getSourceFieldName()));
     sql.append("=");
     sql.append(refSource.getId());
     sql.append(" AND ");
-    sql.append(driver.formatFieldName(ref.getTargetFieldName()));
+    sql.append(driver.quote(ref.getTargetFieldName()));
     sql.append("=");
     sql.append(refTarget.getId());
     try {
@@ -259,11 +230,11 @@ public class JDBCSession extends DBSession {
 
     sql = new StringBuilder();
     sql.append("INSERT INTO ");
-    sql.append(driver.formatFieldName(intermediate.getTableName()));
+    sql.append(driver.quote(intermediate.getTableName()));
     sql.append('(');
-    sql.append(driver.formatFieldName(ref.getSourceFieldName()));
+    sql.append(driver.quote(ref.getSourceFieldName()));
     sql.append(',');
-    sql.append(driver.formatFieldName(ref.getTargetFieldName()));
+    sql.append(driver.quote(ref.getTargetFieldName()));
     sql.append(") VALUES (");
     sql.append(refSource.getId());
     sql.append(',');

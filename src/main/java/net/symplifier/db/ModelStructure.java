@@ -462,6 +462,18 @@ public class ModelStructure<T extends Model> {
     return false;
   }
 
+
+  public boolean containsReference(Reference reference) {
+    for(Reference r:references.values()) {
+      if (r == reference) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+
   @Override
   public String toString() {
     return "ModelStructure[" + this.getTableName() + "]";

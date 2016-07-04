@@ -86,32 +86,42 @@ public class JDBCQuery<M extends Model> implements Query<M> {
       // TODO - Load implementation columns
 
       // Stage 4. Next up go through all the references and load them up as well
-      for(Map.Entry<Reference, ModelMap> entry:relations.entrySet()) {
-        Reference ref = entry.getKey();
-        ModelMap m = entry.getValue();
-        int idx = m.columns[0].index;
-        JDBCField field = fields[idx];
-        Long id = (Long)field.get(rs, idx+1);
-        // There may not be any referenced record specially due
-        // to the left join
-        if (id != null) {
-          ModelInstance child = seed.get(ref, id);
-          if (child == null) {
-            ModelRow newRow = m.model.getRow(id);
-            child = (ModelInstance) m.model.create(newRow, false);
-            seed.set(ref, id, child);
-            m.recursiveLoad(rs, newRow, child);
-          } else {
-            m.recursiveLoad(rs, child.getPrimaryRow(), child);
-          }
+      // Need to iterate through the parents relations as well
+      for(int l=-1; l<parents.size(); ++l) {
+        Map<Reference, ModelMap> relations;
+        if (l == -1) {
+          relations = this.relations;
         } else {
-          // It might be possible that there aren't any records available
-          // for this child relation (since its a left join), we want to
-          // let the seed model know about this situation otherwise everytime
-          // the children are being accessed, a query would be run as the
-          // instances are set to null for child references if the references
-          // are not loaded by joins
-          seed.set(ref, null, null);
+          relations = parents.get(l).relations;
+        }
+
+        for (Map.Entry<Reference, ModelMap> entry : relations.entrySet()) {
+          Reference ref = entry.getKey();
+          ModelMap m = entry.getValue();
+          int idx = m.columns[0].index;
+          JDBCField field = fields[idx];
+          Long id = (Long) field.get(rs, idx + 1);
+          // There may not be any referenced record specially due
+          // to the left join
+          if (id != null) {
+            ModelInstance child = seed.get(ref, id);
+            if (child == null) {
+              ModelRow newRow = m.model.getRow(id);
+              child = (ModelInstance) m.model.create(newRow, false);
+              seed.set(ref, id, child);
+              m.recursiveLoad(rs, newRow, child);
+            } else {
+              m.recursiveLoad(rs, child.getPrimaryRow(), child);
+            }
+          } else {
+            // It might be possible that there aren't any records available
+            // for this child relation (since its a left join), we want to
+            // let the seed model know about this situation otherwise everytime
+            // the children are being accessed, a query would be run as the
+            // instances are set to null for child references if the references
+            // are not loaded by joins
+            seed.set(ref, null, null);
+          }
         }
       }
 
@@ -200,12 +210,12 @@ public class JDBCQuery<M extends Model> implements Query<M> {
     if (builder.getJoins().size() > 0 && limit != null) {
       // We have joins, the limit has to be treated a bit specially
       sqlBuffer.append("(SELECT * FROM ");
-      sqlBuffer.append(builder.getPrimaryModel().getTableName());
+      sqlBuffer.append(this.driver.quote(builder.getPrimaryModel().getTableName()));
       buildLimit(sqlBuffer, parameters, limit, true);
       sqlBuffer.append(')');
       limit = null;
     } else {
-      sqlBuffer.append(builder.getPrimaryModel().getTableName());
+      sqlBuffer.append(this.driver.quote(builder.getPrimaryModel().getTableName()));
     }
     sqlBuffer.append(" AS ");
     sqlBuffer.append(alias);
@@ -262,7 +272,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
         }
         columnNames.append(a.toString());
         columnNames.append('.');
-        columnNames.append(model.getColumn(i).getFieldName());
+        columnNames.append(this.driver.quote(model.getColumn(i).getFieldName()));
 
         Column col = model.getColumn(i);
         a.modelMap.columns[i] = new QueryColumn(col, c);
@@ -379,7 +389,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
       } else if (entity instanceof Column) {
         sqlBuffer.append(alias.toString());
         sqlBuffer.append('.');
-        sqlBuffer.append(driver.formatFieldName(((Column) entity).getFieldName()));
+        sqlBuffer.append(driver.quote(((Column) entity).getFieldName()));
       } else if (entity instanceof Parameter) {
         sqlBuffer.append('?');
         //JDBCParameter.Factory factory = (JDBCParameter.Factory)((Parameter) entity).getColumn().getParameterFactory();
@@ -398,6 +408,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
           parameters.add(p);
           //parameters.put(p, factory.createModel(parameters.size(), p));
         }
+        sqlBuffer.append(')');
       } else if (entity instanceof Filter) {
         Filter f = (Filter) entity;
         int opCount = f.getOperationCount();
@@ -434,7 +445,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
         // as the default ordering
         sqlBuffer.append(alias.toString());
         sqlBuffer.append('.');
-        sqlBuffer.append(alias.getModel().getPrimaryKeyField());
+        sqlBuffer.append(this.driver.quote(alias.getModel().getPrimaryKeyField()));
         first = false;
       } else {
         for(Order order:orders) {
@@ -460,7 +471,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
 
           sqlBuffer.append(correctAlias.toString());
           sqlBuffer.append('.');
-          sqlBuffer.append(col.getFieldName());
+          sqlBuffer.append(this.driver.quote(col.getFieldName()));
 
           if (order.isDescending()) {
             sqlBuffer.append(" DESC");
@@ -495,7 +506,7 @@ public class JDBCQuery<M extends Model> implements Query<M> {
     sqlBuffer.append("\r\n    ");
     sqlBuffer.append(joinType);
     sqlBuffer.append(" JOIN ");
-    sqlBuffer.append(joinTable);
+    sqlBuffer.append(this.driver.quote(joinTable));
     sqlBuffer.append(" AS ");
     sqlBuffer.append(childAlias);
     sqlBuffer.append(" ON ");
@@ -516,7 +527,24 @@ public class JDBCQuery<M extends Model> implements Query<M> {
       Reference reference = join.getReference();
       ModelStructure joinModel = join.getModel();
       ModelMap newMap = new ModelMap(joinModel);
-      parentModel.relations.put(reference, newMap);
+
+      ModelMap actualParent = parentModel;
+      Alias actualAlias = parentAlias;
+
+      // The join may need to be done with the parent model in which case we
+      // will use the parent map
+      if (!parentModel.model.containsReference(reference)) {
+        List<ModelMap> parents = parentModel.parents;
+        for(ModelMap p: parents) {
+          if (p.model.containsReference(reference)) {
+            actualParent = p;
+            actualAlias = p.alias;
+            break;
+          }
+        }
+      }
+
+      actualParent.relations.put(reference, newMap);
 
       Alias joinAlias = new Alias(newMap, join.filter(), join.getOrderBy());
       // If there is an intermediate table in the join then there are actually two joins to be made
@@ -524,14 +552,25 @@ public class JDBCQuery<M extends Model> implements Query<M> {
       if (intermediate != null) {
         //Alias alias = new Alias(intermediate, null);
         String alias = "I" + (++aliasNumber);
-        makeJoin(sqlBuffer, "LEFT", intermediate.getTableName(), parentAlias.toString(), parent.getPrimaryKeyField(), alias, reference.getSourceFieldName());
+        makeJoin(sqlBuffer, "LEFT", intermediate.getTableName(), actualAlias.toString(), parent.getPrimaryKeyField(), alias, reference.getSourceFieldName());
         //joinAlias = new Alias(reference.getTargetType(), join.filter());
         makeJoin(sqlBuffer, "LEFT", joinModel.getTableName(), alias, reference.getTargetFieldName(), joinAlias.toString(), joinModel.getPrimaryKeyField());
       } else {
         //joinAlias = new Alias(reference.getTargetType(), join.filter());
-        makeJoin(sqlBuffer, "LEFT", joinModel.getTableName(), parentAlias.toString(), reference.getSourceFieldName(), joinAlias.toString(), reference.getTargetFieldName());
+        makeJoin(sqlBuffer, "LEFT", joinModel.getTableName(), actualAlias.toString(), reference.getSourceFieldName(), joinAlias.toString(), reference.getTargetFieldName());
       }
 
+      // Join all the parents as well
+      for(ModelStructure p:joinModel.getParents()) {
+        ModelMap pMap = new ModelMap(p);
+        newMap.parents.add(pMap);
+
+        Alias pAlias = new Alias(pMap, null, null);
+        //aliases.add(pAlias);
+        makeJoin(sqlBuffer, "LEFT", p.getTableName(), joinAlias.name,
+                joinModel.getPrimaryKeyField(),
+                pAlias.name, p.getPrimaryKeyField());
+      }
 
       buildJoins(newMap, sqlBuffer, joinAlias, joinModel, join.getJoinChildren());
 

@@ -3,6 +3,7 @@ package net.symplifier.db.driver.jdbc;
 import javax.sql.rowset.serial.SerialBlob;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.sql.Types;
 
 /**
@@ -94,7 +95,7 @@ public interface JDBCParameter<V> {
       if (value == null) {
         statement.setNull(index, Types.DATE);
       } else {
-        statement.setDate(index, new java.sql.Date(value.getTime()));
+        statement.setTimestamp(index, new Timestamp(value.getTime()));//new java.sql.Date(value.getTime()));
       }
     }
   }

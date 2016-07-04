@@ -13,8 +13,10 @@ import java.util.List;
 public class SQLBuilder {
   private final StringBuilder builder;
   private final List<Query.Parameter> parameters;
+  private final JDBCDriver driver;
 
-  public SQLBuilder() {
+  public SQLBuilder(JDBCDriver driver) {
+    this.driver = driver;
     builder = new StringBuilder();
     parameters = new ArrayList<>();
   }
@@ -47,7 +49,7 @@ public class SQLBuilder {
   }
 
   public SQLBuilder append(ModelStructure model) {
-    builder.append(model.getTableName());
+    builder.append(driver.quote(model.getTableName()));
     return this;
   }
 
@@ -62,7 +64,7 @@ public class SQLBuilder {
       }
 
       values.append('?');
-      builder.append(col.getFieldName());
+      builder.append(driver.quote(col.getFieldName()));
       parameters.add(new Query.Parameter(data[i]).init(col));
     }
     builder.append(") VALUES (");

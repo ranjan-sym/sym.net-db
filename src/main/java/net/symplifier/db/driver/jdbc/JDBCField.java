@@ -80,7 +80,7 @@ public interface JDBCField<T> {
 
     @Override
     public java.util.Date get(ResultSet rs, int index) throws SQLException {
-      java.util.Date v = rs.getDate(index);
+      java.util.Date v = rs.getTimestamp(index);
       if (rs.wasNull()) {
         return null;
       } else {
